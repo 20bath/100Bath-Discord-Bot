@@ -1,0 +1,1 @@
+//ถอดแบบ Canvas ใน level.js commands สำหรับการใช้ reuseable
