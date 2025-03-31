@@ -4,7 +4,7 @@ const economy = require("./economySystem");
 class GachaSystem {
   constructor() {
     this.pitySystem = {
-      SSR: 50, // การันตี SSR ที่ 50 ครั้ง
+      SSR: 60, // การันตี SSR ที่ 60 ครั้ง
       SR: 8, // การันตี SR ทุก 8 ครั้ง
     };
 

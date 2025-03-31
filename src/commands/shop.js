@@ -82,10 +82,45 @@ module.exports = {
 
         if (i.customId === "shop_category") {
           const category = i.values[0];
-          const items = ShopSystem.getShopItems()[category];
           const categoryInfo = ShopSystem.getCategoryInfo()[category];
 
-          // สร้าง embed แสดงสินค้าในหมวดหมู่
+          if (category === "gems") {
+            const gemsEmbed = new EmbedBuilder()
+              .setTitle("💎 ร้านค้าเพชรกาชา")
+              .setColor("#2b2d31")
+              .setDescription(categoryInfo.description)
+              .setImage("attachment://promptpay.jpg")
+              .addFields(
+                {
+                  name: "💎 เพชรของคุณ",
+                  value: `${profile.gems?.common || 0} เพชร`,
+                  inline: true
+                }
+              )
+              .setFooter({ text: "เพชรจะถูกเพิ่มเข้าบัญชีภายใน 24 ชั่วโมง" });
+
+            const backButton = new ButtonBuilder()
+              .setCustomId("shop_back")
+              .setLabel("กลับไปหน้าหลัก")
+              .setStyle(ButtonStyle.Secondary);
+
+            await i.update({
+              embeds: [gemsEmbed],
+              files: ["./src/Assets/PromptPay/promptpay.jpg"],
+              components: [new ActionRowBuilder().addComponents(backButton)]
+            });
+            return;
+          }
+
+          const items = ShopSystem.getShopItems()[category];
+          if (!items) {
+            await i.reply({ 
+              content: "❌ ไม่พบรายการสินค้าในหมวดหมู่นี้",
+              ephemeral: true 
+            });
+            return;
+          }
+
           const categoryEmbed = new EmbedBuilder()
             .setTitle(`🏪 ร้านค้า - ${getCategoryName(category)}`)
             .setColor("#ffd700")
@@ -155,11 +190,7 @@ module.exports = {
               )
               .setFooter({ text: "เพชรจะถูกเพิ่มเข้าบัญชีภายใน 24 ชั่วโมง" });
 
-            await i.update({
-              embeds: [gemsEmbed],
-              files: ["./src/Assets/PromptPay/IMG_5212.jpg"],
-              components: [new ActionRowBuilder().addComponents(backButton)],
-            });
+            
             return;
           }
 

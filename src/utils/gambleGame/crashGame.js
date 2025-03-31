@@ -115,8 +115,8 @@ class CrashGame extends BaseGame {
     }
 
     generateCrashPoint() {
-        // Using a house edge of 3%
-        const houseEdge = 0.97;
+        // Using a house edge of 4%
+        const houseEdge = 0.96;
         const random = Math.random();
         return Math.max(1.0, Math.floor((100 / (random * 100) * houseEdge) * 100) / 100);
     }

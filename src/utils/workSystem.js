@@ -8,7 +8,7 @@ const QuestSystem = require("./questDailySystem");
 class WorkSystem {
   constructor() {
     (this.gems = {
-      common: { name: "💎 100BathGems ", chance: 0.7, value: 10 },
+      common: { name: "💎 100BathGems ", chance: 0.5, value: 10 },
       // uncommon: { name: "🔮 เพชรแห่งการทำนาย", chance: 0.05, value: 800 },
       // rare: { name: "🪐 เพชรแห่งโชค", chance: 0.01, value: 1000 },
       // epic: { name: "💎 เพชรแท้", chance: 0.005, value: 10000 }
