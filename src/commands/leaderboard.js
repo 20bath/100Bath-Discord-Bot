@@ -16,6 +16,11 @@ module.exports = {
                     { name: '💼 ทำงานมากที่สุด', value: 'work' },
                     { name: '💸 ใช้เงินมากที่สุด', value: 'spending' },
                     { name: '🎲 กำไรจากการพนัน', value: 'gambling' },
+                    { name: '🎰 เล่นพนันบ่อยที่สุด', value: 'gambling_freq' },
+                    { name: '👊 ปล้นมากที่สุด', value: 'rob' },
+                    { name: '🛡️ ขัดขวางการปล้น', value: 'rob_prevent' },
+                    { name: '🔥 Streak สูงสุด', value: 'streak' },
+                    { name: '💎 เพชรมากที่สุด', value: 'diamonds' },
                     { name: '🤝 โอนเงินสะสม', value: 'transfer' }
                 )),
 
@@ -102,6 +107,69 @@ module.exports = {
                         }))
                         .sort((a, b) => b.value - a.value);
                     break;
+
+                case 'gambling_freq':
+                    title = '🎰 อันดับนักพนันตัวยง';
+                    description = 'ผู้เล่นที่เล่นการพนันบ่อยที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: profile.stats?.gamblingStats?.gamesPlayed || 0,
+                            detail: `🎰 เล่นไป ${profile.stats?.gamblingStats?.gamesPlayed || 0} ครั้ง`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+
+                case 'rob':
+                    title = '👊 อันดับนักปล้น';
+                    description = 'ผู้เล่นที่ปล้นและถูกปล้นมากที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: (profile.stats?.robStats?.successful || 0) + (profile.stats?.robStats?.robbed || 0),
+                            detail: `👊 ปล้น ${profile.stats?.robStats?.successful || 0} | โดนปล้น ${profile.stats?.robStats?.robbed || 0}`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+
+                case 'rob_prevent':
+                    title = '🛡️ อันดับผู้พิทักษ์';
+                    description = 'ผู้เล่นที่ขัดขวางการปล้นได้มากที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: profile.stats?.robStats?.prevented || 0,
+                            detail: `🛡️ ขัดขวาง ${profile.stats?.robStats?.prevented || 0} ครั้ง`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+
+                case 'streak':
+                    title = '🔥 อันดับ Streak สูงสุด';
+                    description = 'ผู้เล่นที่มี Streak สูงที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: profile.stats?.maxStreak || 0,
+                            detail: `🔥 Streak ${profile.stats?.maxStreak || 0} วัน`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+
+                    case 'diamonds':
+                        title = '💎 อันดับเศรษฐีเพชรกาชา';
+                        description = 'ผู้เล่นที่มีเพชรกาชามากที่สุด 5 อันดับแรก';
+                        data = economyData
+                            .map(profile => {
+                                const gems = profile.gems?.common || 0;
+                                return {
+                                    id: profile.userId,
+                                    value: gems,
+                                    detail: `💎 ${gems.toLocaleString()} เพชร`
+                                };
+                            })
+                            .sort((a, b) => b.value - a.value);
+                        break;
 
                 case 'transfer':
                     title = '🤝 อันดับการโอนเงิน';

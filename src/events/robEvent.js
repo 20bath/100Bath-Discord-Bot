@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require("discord.js");
-const { activeRobs, ROB_CONFIG } = require("../utils/robSystem");
+const { activeRobs, ROB_CONFIG, checkRobberyCard } = require("../utils/robSystem");
 const EconomySystem = require("../utils/economySystem");
 
 module.exports = (client) => {

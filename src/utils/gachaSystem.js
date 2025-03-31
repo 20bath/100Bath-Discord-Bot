@@ -3,6 +3,11 @@ const economy = require("./economySystem");
 
 class GachaSystem {
   constructor() {
+    this.pitySystem = {
+      SSR: 50, // การันตี SSR ที่ 50 ครั้ง
+      SR: 8, // การันตี SR ทุก 8 ครั้ง
+    };
+
     this.gachaRates = {
       SSR: 0.5, // 2%
       SR: 3.5, // 8%
@@ -17,9 +22,21 @@ class GachaSystem {
           name: "👮ตำรวจ ",
           type: "role",
           roleId: "1348538334603120646",
-          description: "ลดโอกาสการถูกปล้น 30% ! (ถาวร)",
+          description: "ลดโอกาสการถูกปล้น 30% !\n(ถาวร)",
           effects: {
             robbery_rate: -0.3,
+          },
+        },
+        {
+          id: "robber",
+          name: "🦹‍♂️ โจร",
+          type: "role",
+          roleId: "1348538334603120645",
+          description: "เพิ่มโอกาศการปล้น 15%! \nโอกาสทำเงินตกลดลง 10%\nลดคูลดาวน์ปล้น 20%\n(ถาวร)",
+          effects: {
+            robbery_rate: 0.15,
+            robbery_loss: -0.1,
+            robbery_fee_reduction: -0.2,
           },
         },
       ],
@@ -29,8 +46,19 @@ class GachaSystem {
           name: "🔫 ปืนเถื่อน",
           description: "เพิ่มเพิ่มโอกาสสำเร็จในการปล้น 10%",
           duration: 3600000, // 1 hour
-          type: "permanent",
+          type: "temporary",
           effect: { success_rob_rate: 0.1 },
+        },
+        //บัตรป้องกันการปล้นชั่วคราว
+        {
+          id: "robbery_card",
+          name: "🛡️ บัตรป้องกันการปล้น(ชั่วคราว)",
+          description: "ลดโอกาสถูกปล้น 20% (30 นาที)",
+          duration: 1800000,
+          type: "temporary",
+          effects: {
+            robbery_rate: -0.2,
+          },
         },
       ],
       R: [
@@ -51,7 +79,7 @@ class GachaSystem {
           name: "🗑️ ขยะ",
           type: "trash",
           value: 100,
-          description: "แค่ขยะธรรมดา...",
+          description: "แค่ขยะธรรมดา... (มูลค่า 100 บาท)",
         },
       ],
     };
@@ -59,7 +87,19 @@ class GachaSystem {
     this.costPerPull = 80; // ใช้ 80 เพชรต่อการสุ่ม 80 ครั้ง
   }
 
-  getRarity() {
+  async getRarity(userId) {
+    const profile = await economy.getProfile(userId);
+    const pityCount = profile.gachaStats?.pityCount || { SSR: 0, SR: 0 };
+
+    // ตรวจสอบการการันตี
+    if (pityCount.SSR >= this.pitySystem.SSR - 1) {
+      return "SSR";
+    }
+    if (pityCount.SR >= this.pitySystem.SR - 1) {
+      return "SR";
+    }
+
+    // สุ่มปกติถ้าไม่ถึงการันตี
     const rand = Math.random() * 100;
     let sum = 0;
 
@@ -68,6 +108,38 @@ class GachaSystem {
       if (rand < sum) return rarity;
     }
     return "N";
+  }
+
+  async updatePityCount(userId, rarity) {
+    const profile = await economy.getProfile(userId);
+    const gachaStats = profile.gachaStats || {
+      totalPulls: 0,
+      pityCount: { SSR: 0, SR: 0 },
+      obtained: { SSR: 0, SR: 0, R: 0, N: 0 },
+    };
+
+    // เพิ่มจำนวนครั้งที่สุ่ม
+    gachaStats.totalPulls++;
+
+    // เพิ่มจำนวนที่ได้แต่ละ rarity
+    gachaStats.obtained[rarity] = (gachaStats.obtained[rarity] || 0) + 1;
+
+    // อัพเดทค่า pity ตามผลที่ได้
+    if (rarity === "SSR") {
+      gachaStats.pityCount.SSR = 0;
+      gachaStats.pityCount.SR++;
+    } else if (rarity === "SR") {
+      gachaStats.pityCount.SR = 0;
+      gachaStats.pityCount.SSR++;
+    } else {
+      gachaStats.pityCount.SSR++;
+      gachaStats.pityCount.SR++;
+    }
+
+    // อัพเดท stats ใน database
+    await economy.updateProfile(userId, { gachaStats });
+
+    return gachaStats;
   }
 
   getRandomReward(rarity) {
@@ -91,9 +163,12 @@ class GachaSystem {
       const currentGems = profile.gems || {};
       currentGems.common = (currentGems.common || 0) - this.costPerPull;
 
-      // สุ่มรางวัล
-      const rarity = this.getRarity();
+      // สุ่มรางวัลโดยใช้ระบบ pity
+      const rarity = await this.getRarity(userId);
       const reward = this.getRandomReward(rarity);
+
+      // อัพเดทค่า pity และ stats
+      const gachaStats = await this.updatePityCount(userId, rarity);
 
       // อัพเดทโปรไฟล์
       const updateData = { gems: currentGems };
@@ -134,6 +209,9 @@ class GachaSystem {
         rarity,
         reward,
         gemsLeft: currentGems.common,
+        pityCount: gachaStats.pityCount,
+        obtained: gachaStats.obtained,
+        totalPulls: gachaStats.totalPulls,
       };
     } catch (error) {
       console.error("Error in gacha pull:", error);
@@ -142,37 +220,56 @@ class GachaSystem {
   }
 
   createPullEmbed(result) {
+    // Define rarity colors and symbols
+    const rarityConfig = {
+      SSR: { color: '#FFD700', symbol: '⭐⭐⭐', name: 'LEGENDARY' },
+      SR: { color: '#cd60ff', symbol: '⭐⭐', name: 'EPIC' },
+      R: { color: '#4169E1', symbol: '⭐', name: 'RARE' },
+      N: { color: '#a2e3ff', symbol: '⚪', name: 'COMMON' }
+    };
+
+    const rarity = rarityConfig[result.rarity];
+    
     const embed = new EmbedBuilder()
-      .setTitle("🎲 ผลการสุ่มกาชา")
-      .setColor(
-        result.rarity === "SSR"
-          ? "#fff460"
-          : result.rarity === "SR"
-          ? "#c966fd"
-          : result.rarity === "R"
-          ? "#60d0ff"
-          : "#bbeafe"
-      )
-      .addFields(
-        {
-          name: "🎁 รางวัลที่ได้",
-          value: `${result.reward.name}\n${result.reward.description || ""}`,
-          inline: true,
-        },
-        {
-          name: "⭐ ระดับความหายาก",
-          value: result.rarity,
-          inline: true,
-        },
-        {
-          name: "💎 เพชรคงเหลือ",
-          value: `${result.gemsLeft} เม็ด`,
-          inline: true,
-        }
-      );
+      .setTitle(`${rarity.symbol} NEW ${rarity.name}!`)
+      .setColor(rarity.color)
+      .setDescription(`\`\`\`\n${result.reward.name}\n${result.reward.description || ""}\`\`\``)
+      .addFields({
+        name: '\u200b',
+        value: `┌─────────── Stats ───────────┐
+        │ 💎 Gems: ${result.gemsLeft.toLocaleString()}
+        │ ⭐ Pity SSR: ${result.pityCount.SSR}/${this.pitySystem.SSR}
+        │ ⭐ Pity SR: ${result.pityCount.SR}/${this.pitySystem.SR}
+        └───────────────────────────┘`,
+        inline: false
+      });
+
+    if (result.totalPulls > 0) {
+      const stats = [
+        `Total Pulls: ${result.totalPulls.toLocaleString()}`,
+        `SSR: ${result.obtained.SSR || 0}`,
+        `SR: ${result.obtained.SR || 0}`,
+        `R: ${result.obtained.R || 0}`,
+        `N: ${result.obtained.N || 0}`
+      ].join(' • ');
+
+      embed.addFields({
+        name: '📊 Pull History',
+        value: `\`\`\`\n${stats}\`\`\``,
+        inline: false
+      });
+    }
+
+    // Add footer with rates
+    embed.setFooter({ 
+      text: `Rates: SSR ${this.gachaRates.SSR}% • SR ${this.gachaRates.SR}% • R ${this.gachaRates.R}% • N ${this.gachaRates.N}%` 
+    });
+
+    // Add timestamp
+    embed.setTimestamp();
 
     return embed;
-  }
+}
 }
 
 module.exports = new GachaSystem();

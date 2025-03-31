@@ -20,7 +20,14 @@ const ROB_CONFIG = {
     },
 };
 
+async function checkRobberyCard(userId) {
+    const shop = require('./shopSystem');
+    const effects = await shop.checkEffects(userId);
+    return effects.robbery_card || false;
+}
+
 module.exports = {
     activeRobs,
-    ROB_CONFIG
+    ROB_CONFIG,
+    checkRobberyCard
 };

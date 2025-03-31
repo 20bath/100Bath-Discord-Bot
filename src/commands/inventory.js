@@ -62,12 +62,21 @@ module.exports = {
             const shopItem = shop.findItem(item.id);
             if (shopItem) {
                 let status = item.active ? '✅ กำลังใช้งาน' : '❌ ไม่ได้ใช้งาน';
+                
+                // สำหรับไอเทมที่มีเวลาหมดอายุ
                 if (item.expiresAt) {
                     const timeLeft = item.expiresAt - Date.now();
                     if (timeLeft > 0) {
                         const hours = Math.floor(timeLeft / 3600000);
                         const minutes = Math.floor((timeLeft % 3600000) / 60000);
-                        status += `\n⏳ หมดอายุใน ${hours}h ${minutes}m`;
+                        
+                        // แสดงเวลารวม ถ้ามีไอเทมซ้ำ
+                        if (shopItem.type === 'temporary') {
+                            const totalDuration = hours + (minutes / 60);
+                            status += `\n⏳ เวลาคงเหลือ ${totalDuration.toFixed(1)} ชั่วโมง`;
+                        } else {
+                            status += `\n⏳ หมดอายุใน ${hours}h ${minutes}m`;
+                        }
                     }
                 }
                 return `${shopItem.name} ${status}`;
@@ -152,6 +161,53 @@ module.exports = {
         }
 
         delete categories.work_items_raw; // Remove temporary storage
+
+        // แก้ไขส่วนการจัดการ temporary items
+        if (category === 'temporary' || category === 'all') {
+            const tempItems = items.filter(item => {
+                const shopItem = shop.findItem(item.id);
+                return shopItem && shopItem.type === 'temporary';
+            });
+
+            // จัดกลุ่มไอเทม temporary ตาม ID
+            const groupedTemp = {};
+            tempItems.forEach(item => {
+                if (!groupedTemp[item.id]) {
+                    groupedTemp[item.id] = [];
+                }
+                groupedTemp[item.id].push(item);
+            });
+
+            // แปลงเป็นรูปแบบที่ต้องการแสดง
+            categories.temporary = Object.entries(groupedTemp).map(([itemId, items]) => {
+                const shopItem = shop.findItem(itemId);
+                if (!shopItem) return null;
+
+                const activeCount = items.filter(i => i.active).length;
+                let display = `${shopItem.name} (x${items.length})`;
+                
+                // if (activeCount > 0) {
+                //     display += ` ✅ ${activeCount} ชิ้นกำลังใช้งาน`;
+                // }
+
+                // คำนวณเวลารวม
+                const totalDuration = items.reduce((total, item) => {
+                    if (item.expiresAt) {
+                        const timeLeft = item.expiresAt - Date.now();
+                        return total + (timeLeft > 0 ? timeLeft : 0);
+                    }
+                    return total;
+                }, 0);
+
+                if (totalDuration > 0) {
+                    const totalHours = Math.floor(totalDuration / 3600000);
+                    const totalMinutes = Math.floor((totalDuration % 3600000) / 60000);
+                    display += ` ⏳ เวลารวม ${totalHours}h ${totalMinutes}m`;
+                }
+
+                return display;
+            }).filter(Boolean);
+        }
 
         // Rest of the code remains the same...
         Object.entries(categories).forEach(([key, items]) => {

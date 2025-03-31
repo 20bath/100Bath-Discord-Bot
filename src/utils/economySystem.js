@@ -35,6 +35,25 @@ class EconomySystem {
       balance: 0,
       bankBalance: 1000, // เพิ่มยอดเงินในธนาคาร
       bankLimit: 10000, // เพิ่มลิมิตเงินในธนาคาร
+      gems: {
+        common: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+      },
+      gachaStats: {
+        totalPulls: 0,
+        pityCount: {
+            SSR: 0,
+            SR: 0
+        },
+        obtained: {
+            SSR: 0,
+            SR: 0,
+            R: 0,
+            N: 0
+        }
+    },
       stats: {
         totalEarned: 0,
         totalLost: 0,

@@ -7,7 +7,7 @@ const {
 } = require("discord.js");
 const EconomySystem = require("../utils/economySystem");
 const shop = require("../utils/shopSystem");
-const { activeRobs, ROB_CONFIG } = require("../utils/robSystem"); // Move to separate system file
+const { activeRobs, ROB_CONFIG, checkRobberyCard } = require("../utils/robSystem"); // Move to separate system file
 const QuestSystem = require("../utils/questDailySystem"); // Add this import
 
 module.exports = {
@@ -60,6 +60,15 @@ module.exports = {
           content: "🚨 ผู้เล่นนี้กำลังถูกปล้นอยู่!",
           ephemeral: true,
         });
+      }
+
+      // ตรวจสอบบัตรป้องกันของเป้าหมาย
+      const hasRobberyCard = await checkRobberyCard(target.id);
+      if (hasRobberyCard) {
+          return interaction.editReply({
+              content: "🛡️ เป้าหมายมีบัตรป้องกันการปล้นอยู่ ไม่สามารถปล้นได้!",
+              ephemeral: true
+          });
       }
 
       // คำนวณค่าต่างๆที่จำเป็นก่อน
