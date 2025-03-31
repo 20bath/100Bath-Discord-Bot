@@ -54,16 +54,16 @@ module.exports = {
           const isLocked = job.requiredLevel > userLevel;
 
           embed.addFields({
-            name: `${isLocked ? '🔒' : '✅'} ${job.name}`,
-            value: 
-                `ต้องการเลเวล: ${job.requiredLevel}\n` +
-                `เลเวลอาชีพปัจจุบัน: ${jobLevel}\n` +
-                `รายได้พื้นฐาน: ${job.pay.base} บาท\n` +
-                `EXP พื้นฐาน: ${job.exp.base}\n` +
-                `⏰ คูลดาวน์: ${job.cooldown / 60000} นาที\n` +
-                `ไอเทมพิเศษ: ${job.items.map(item => item.name).join(', ')}`,
-            inline: false
-        });
+            name: `${isLocked ? "🔒" : "✅"} ${job.name}`,
+            value:
+              `ต้องการเลเวล: ${job.requiredLevel}\n` +
+              `เลเวลอาชีพปัจจุบัน: ${jobLevel}\n` +
+              `รายได้พื้นฐาน: ${job.pay.base} บาท\n` +
+              `EXP พื้นฐาน: ${job.exp.base}\n` +
+              `⏰ คูลดาวน์: ${job.cooldown / 60000} นาที\n` +
+              `ไอเทมพิเศษ: ${job.items.map((item) => item.name).join(", ")}`,
+            inline: false,
+          });
         }
 
         embed.setFooter({
@@ -79,10 +79,10 @@ module.exports = {
 
       if (!job) {
         return interaction.editReply({
-            content: "❌ ไม่พบอาชีพที่ระบุ",
-            ephemeral: true
+          content: "❌ ไม่พบอาชีพที่ระบุ",
+          ephemeral: true,
         });
-    }
+      }
 
       // ตรวจสอบ cooldown
       const jobCooldown = await WorkSystem.checkJobCooldown(
@@ -153,6 +153,29 @@ module.exports = {
         });
       }
 
+      // แสดงเพชรที่ได้รับ (ถ้ามี)
+      if (result.gems && result.gems.length > 0) {
+        // Group gems by type and count
+        const gemCounts = result.gems.reduce((acc, gem) => {
+          if (!acc[gem.type]) {
+            acc[gem.type] = {
+              name: gem.name,
+              count: 0,
+            };
+          }
+          acc[gem.type].count++;
+          return acc;
+        }, {});
+
+        embed.addFields({
+          name: "💎 ได้รับเพชร",
+          value: Object.values(gemCounts)
+            .map((gem) => `${gem.name} (ได้รับ ${gem.count} เม็ด)`)
+            .join("\n"),
+          inline: false,
+        });
+      }
+
       // แสดงการเลเวลอัพของอาชีพ (ถ้ามี)
       if (result.levelUp) {
         embed.addFields({
@@ -164,19 +187,18 @@ module.exports = {
 
       await WorkSystem.setJobCooldown(interaction.user.id, jobId, job.cooldown);
       await interaction.editReply({ embeds: [embed] });
-
     } catch (error) {
-            console.error("Error in work command:", error);
-            if (interaction.deferred) {
-                return interaction.editReply({
-                    content: "❌ เกิดข้อผิดพลาดในการทำงาน",
-                    ephemeral: true
-                });
-            }
-            return interaction.editReply({
-                content: "❌ เกิดข้อผิดพลาดในการทำงาน",
-                ephemeral: true
-            });
-        }
+      console.error("Error in work command:", error);
+      if (interaction.deferred) {
+        return interaction.editReply({
+          content: "❌ เกิดข้อผิดพลาดในการทำงาน",
+          ephemeral: true,
+        });
+      }
+      return interaction.editReply({
+        content: "❌ เกิดข้อผิดพลาดในการทำงาน",
+        ephemeral: true,
+      });
+    }
   },
 };

@@ -1,12 +1,13 @@
 const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
-const { createCanvas, loadImage, registerFont } = require('canvas');
+const { createCanvas, loadImage, registerFont } = require("canvas");
 const { db } = require("../config/firebase");
+const shop = require("./shopSystem");
 
 const voiceSessions = new Map(); // key: userId, value: { joinTime, channelId }
 
 // Cooldown settings (milliseconds)
 const COOLDOWNS = {
-  MESSAGE: 10000// 10 seconds
+  MESSAGE: 10000, // 10 seconds
 };
 
 // XP ranges
@@ -22,11 +23,6 @@ const XP_RANGES = {
 const messageCooldowns = new Map();
 const voiceCooldowns = new Map();
 
-
-
-
-
-
 // Helper function to get random XP
 function getRandomXP(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -34,23 +30,26 @@ function getRandomXP(min, max) {
 
 // Helper function to calculate required XP for next level
 function getRequiredXP(level) {
-  return Math.floor(150 * Math.pow(1.4, level - 1));
+  if (level < 5) return Math.round(100 + 250 * level); // เริ่มง่าย
+  if (level < 15) return Math.round(300 + 200 * Math.pow(level - 4, 1.5)); // กลางเกม
+  if (level < 30) return Math.round(1000 + 240 * Math.pow(level - 14, 1.7)); // ท้าทายขึ้น
+  return Math.round(3000 + 300 * Math.pow(level - 27, 2.3)); // ปลายเกม
 }
 
 // Add this new function
 async function getLevel(userId) {
   try {
-      const userRef = db.collection("users").doc(userId);
-      const doc = await userRef.get();
+    const userRef = db.collection("users").doc(userId);
+    const doc = await userRef.get();
 
-      if (!doc.exists) {
-          return 1; // Default level for new users
-      }
+    if (!doc.exists) {
+      return 1; // Default level for new users
+    }
 
-      return doc.data().level || 1;
+    return doc.data().level || 1;
   } catch (error) {
-      console.error("Error getting user level:", error);
-      return 1; // Return default level on error
+    console.error("Error getting user level:", error);
+    return 1; // Return default level on error
   }
 }
 
@@ -69,28 +68,29 @@ function checkCooldown(userId, type) {
   return true;
 }
 
-
-
-
-
 async function addXP(member, xpToAdd) {
   const userRef = db.collection("users").doc(member.id);
   const doc = await userRef.get();
   let oldLevel = 1;
 
   try {
+    const effects = await shop.checkEffects(member.id);
+    const xpBoost = effects.xp_boost || 0;
+
+    const boostedAmount = Math.floor(xpToAdd * (1 + xpBoost));
+
     if (!doc.exists) {
       await userRef.set({
         guildId: member.guild.id,
-        xp: xpToAdd,
+        xp: boostedAmount,
         level: 1,
         lastUpdated: Date.now(),
       });
-      return { xp: xpToAdd, level: 1, leveledUp: false };
+      return { xp: boostedAmount, level: 1, leveledUp: false };
     }
 
     const data = doc.data();
-    const newXP = (data.xp || 0) + xpToAdd;
+    const newXP = (data.xp || 0) + boostedAmount;
     oldLevel = data.level || 1;
     let newLevel = oldLevel;
 
@@ -121,12 +121,6 @@ async function addXP(member, xpToAdd) {
   }
 }
 
-
-
-
-
-
-
 // Function to generate pastel color
 function generatePastelColor() {
   const hue = Math.floor(Math.random() * 360);
@@ -149,23 +143,22 @@ function hslToHex(h, s, l) {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-
-
-
-
-
-
 async function handleLevelUp(member, newLevel) {
   try {
     if (!level_up_channel) return;
 
     const canvas = createCanvas(800, 300);
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
 
     // Create minimal gradient background
-    const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    bgGradient.addColorStop(0, '#ffffff');
-    bgGradient.addColorStop(1, '#fafafa');
+    const bgGradient = ctx.createLinearGradient(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+    bgGradient.addColorStop(0, "#ffffff");
+    bgGradient.addColorStop(1, "#fafafa");
     ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -176,7 +169,7 @@ async function handleLevelUp(member, newLevel) {
 
     // Add subtle grid pattern
     ctx.save();
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.03)";
     ctx.lineWidth = 0.5;
     const gridSize = 40;
     for (let x = 0; x < canvas.width; x += gridSize) {
@@ -205,14 +198,14 @@ async function handleLevelUp(member, newLevel) {
     ctx.restore();
 
     // Add thin accent line at top
-    ctx.fillStyle = hexColor + '30';
+    ctx.fillStyle = hexColor + "30";
     ctx.fillRect(0, 0, canvas.width, 2);
 
     // Avatar circle glow
     ctx.save();
     const glowGradient = ctx.createRadialGradient(125, 150, 60, 125, 150, 90);
-    glowGradient.addColorStop(0, hexColor + '20');
-    glowGradient.addColorStop(1, 'transparent');
+    glowGradient.addColorStop(0, hexColor + "20");
+    glowGradient.addColorStop(1, "transparent");
     ctx.fillStyle = glowGradient;
     ctx.beginPath();
     ctx.arc(125, 130, 90, 0, Math.PI * 2);
@@ -220,7 +213,9 @@ async function handleLevelUp(member, newLevel) {
     ctx.restore();
 
     // Draw avatar
-    const avatar = await loadImage(member.user.displayAvatarURL({ extension: 'png', size: 256 }));
+    const avatar = await loadImage(
+      member.user.displayAvatarURL({ extension: "png", size: 256 })
+    );
     ctx.save();
     ctx.beginPath();
     ctx.arc(125, 140, 70, 0, Math.PI * 2);
@@ -236,16 +231,16 @@ async function handleLevelUp(member, newLevel) {
     ctx.stroke();
 
     // Add modern typography
-    ctx.textAlign = 'left';
-    
+    ctx.textAlign = "left";
+
     // "LEVEL UP" text with style
     ctx.font = 'bold 48px "Sarabun"';
-    ctx.fillStyle = '#2c2c2c';
-    ctx.fillText('LEVEL UP!', 250, 110);
+    ctx.fillStyle = "#2c2c2c";
+    ctx.fillText("LEVEL UP!", 250, 110);
 
     // Username with new level
     ctx.font = '24px "Sarabun"';
-    ctx.fillStyle = '#666666';
+    ctx.fillStyle = "#666666";
     ctx.fillText(member.user.username, 250, 140);
 
     // Level number with emphasis
@@ -260,38 +255,43 @@ async function handleLevelUp(member, newLevel) {
     const barY = 200;
 
     // Progress bar with clean design
-    ctx.fillStyle = '#f0f0f0';
+    ctx.fillStyle = "#f0f0f0";
     ctx.fillRect(barX, barY, barWidth, barHeight);
-    
-    const barGradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+
+    const barGradient = ctx.createLinearGradient(
+      barX,
+      barY,
+      barX + barWidth,
+      barY
+    );
     barGradient.addColorStop(0, hexColor);
-    barGradient.addColorStop(1, hexColor + '80');
+    barGradient.addColorStop(1, hexColor + "80");
     ctx.fillStyle = barGradient;
     ctx.fillRect(barX, barY, barWidth, barHeight);
 
     // Next level info with subtle style
     ctx.font = '18px "Sarabun"';
-    ctx.fillStyle = '#999999';
+    ctx.fillStyle = "#999999";
     ctx.fillText(
       `เป้าหมายถัดไป ${getRequiredXP(newLevel)} XP`,
-      barX, barY + 30
+      barX,
+      barY + 30
     );
-
 
     // Handle role creation and assignment
     try {
-      let role = member.guild.roles.cache.find(r => r.name === roleName);
+      let role = member.guild.roles.cache.find((r) => r.name === roleName);
       if (!role) {
         role = await member.guild.roles.create({
           name: roleName,
           color: hexColor,
-          reason: `Auto role for level ${newLevel}`
+          reason: `Auto role for level ${newLevel}`,
         });
       }
 
       // Update roles
-      const oldLevelRoles = member.roles.cache.filter(role => 
-        role.name.startsWith('💫 Level ')
+      const oldLevelRoles = member.roles.cache.filter((role) =>
+        role.name.startsWith("💫 Level ")
       );
       if (oldLevelRoles.size > 0) {
         await member.roles.remove(oldLevelRoles);
@@ -299,33 +299,22 @@ async function handleLevelUp(member, newLevel) {
       await member.roles.add(role);
 
       // Send level up notification
-      const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: 'levelup.png' });
+      const attachment = new AttachmentBuilder(canvas.toBuffer(), {
+        name: "levelup.png",
+      });
       await level_up_channel.send({
         content: `✨ ยินดีด้วย ${member}! คุณได้อัพเลเวล!`,
-        files: [attachment]
+        files: [attachment],
       });
     } catch (error) {
-      console.error('Role management error:', error);
+      console.error("Role management error:", error);
     }
-
   } catch (error) {
-    console.error('Error in handleLevelUp:', error);
+    console.error("Error in handleLevelUp:", error);
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 module.exports = (client) => {
-
   client.on("messageCreate", async (message) => {
     if (message.author.bot || !message.guild) return;
 
@@ -357,7 +346,6 @@ module.exports = (client) => {
   });
 
   client.on("voiceStateUpdate", async (oldState, newState) => {
-
     // Skip if it's a bot
     if (newState.member.user.bot) return;
 
@@ -365,87 +353,99 @@ module.exports = (client) => {
 
     // User joins a voice channel
     if (!oldState.channelId && newState.channelId) {
-        voiceSessions.set(member.id, {
-            joinTime: Date.now(),
-            channelId: newState.channelId,
-        });
-        console.log(`📥 ${member.user.tag} เริ่มจับเวลาใน voice channel`);
+      voiceSessions.set(member.id, {
+        joinTime: Date.now(),
+        channelId: newState.channelId,
+      });
+      console.log(`📥 ${member.user.tag} เริ่มจับเวลาใน voice channel`);
     }
 
     // User leaves a voice channel
     if (oldState.channelId && !newState.channelId) {
-        const session = voiceSessions.get(member.id);
-        if (!session) {
-            console.log(`❌ ไม่พบข้อมูล session ของ ${member.user.tag}`);
-            return;
+      const session = voiceSessions.get(member.id);
+      if (!session) {
+        console.log(`❌ ไม่พบข้อมูล session ของ ${member.user.tag}`);
+        return;
+      }
+
+      const timeSpent = Date.now() - session.joinTime;
+      voiceSessions.delete(member.id);
+
+      // ตรวจสอบเวลาขั้นต่ำ (1 นาที)
+      if (timeSpent < XP_RANGES.VOICE.MIN_TIME) {
+        console.log(
+          `❌ ${member.user.tag} อยู่ในห้องน้อยเกินไป (${Math.floor(
+            timeSpent / 1000
+          )} วินาที)`
+        );
+        return;
+      }
+
+      try {
+        // คำนวณ XP (2 XP ต่อนาที)
+        const minutesSpent = Math.floor(timeSpent / 60000);
+        const xpEarned = minutesSpent * XP_RANGES.VOICE.PER_MINUTE;
+
+        // ดึงข้อมูลปัจจุบันจาก database
+        const userRef = db.collection("users").doc(member.id);
+        const doc = await userRef.get();
+
+        if (!doc.exists) {
+          // ถ้ายังไม่มีข้อมูล ให้สร้างใหม่
+          await userRef.set({
+            guildId: member.guild.id,
+            xp: xpEarned,
+            level: 1,
+            lastUpdated: Date.now(),
+          });
+          console.log(
+            `✅ สร้างข้อมูลใหม่และเพิ่ม ${xpEarned} XP ให้ ${member.user.tag}`
+          );
+        } else {
+          // ถ้ามีข้อมูลอยู่แล้ว ให้อัพเดต
+          const currentData = doc.data();
+          const newXP = (currentData.xp || 0) + xpEarned;
+          let newLevel = currentData.level || 1;
+
+          // เช็คเลเวลอัพ
+          while (newXP >= getRequiredXP(newLevel)) {
+            newLevel++;
+          }
+
+          await userRef.update({
+            xp: newXP,
+            level: newLevel,
+            lastUpdated: Date.now(),
+          });
+
+          console.log(
+            `✅ ${member.user.tag} ได้รับ ${xpEarned} XP จากการอยู่ในห้อง ${minutesSpent} นาที`
+          );
+
+          // ถ้าเลเวลอัพ
+          if (newLevel > currentData.level) {
+            await handleLevelUp(member, newLevel);
+          }
         }
-
-        const timeSpent = Date.now() - session.joinTime;
-        voiceSessions.delete(member.id);
-
-        // ตรวจสอบเวลาขั้นต่ำ (1 นาที)
-        if (timeSpent < XP_RANGES.VOICE.MIN_TIME) {
-            console.log(`❌ ${member.user.tag} อยู่ในห้องน้อยเกินไป (${Math.floor(timeSpent/1000)} วินาที)`);
-            return;
-        }
-
-        try {
-            // คำนวณ XP (2 XP ต่อนาที)
-            const minutesSpent = Math.floor(timeSpent / 60000);
-            const xpEarned = minutesSpent * XP_RANGES.VOICE.PER_MINUTE;
-
-            // ดึงข้อมูลปัจจุบันจาก database
-            const userRef = db.collection("users").doc(member.id);
-            const doc = await userRef.get();
-
-            if (!doc.exists) {
-                // ถ้ายังไม่มีข้อมูล ให้สร้างใหม่
-                await userRef.set({
-                    guildId: member.guild.id,
-                    xp: xpEarned,
-                    level: 1,
-                    lastUpdated: Date.now(),
-                });
-                console.log(`✅ สร้างข้อมูลใหม่และเพิ่ม ${xpEarned} XP ให้ ${member.user.tag}`);
-            } else {
-                // ถ้ามีข้อมูลอยู่แล้ว ให้อัพเดต
-                const currentData = doc.data();
-                const newXP = (currentData.xp || 0) + xpEarned;
-                let newLevel = currentData.level || 1;
-
-                // เช็คเลเวลอัพ
-                while (newXP >= getRequiredXP(newLevel)) {
-                    newLevel++;
-                }
-
-                await userRef.update({
-                    xp: newXP,
-                    level: newLevel,
-                    lastUpdated: Date.now(),
-                });
-
-                console.log(`✅ ${member.user.tag} ได้รับ ${xpEarned} XP จากการอยู่ในห้อง ${minutesSpent} นาที`);
-                
-                // ถ้าเลเวลอัพ
-                if (newLevel > currentData.level) {
-                    await handleLevelUp(member, newLevel);
-                }
-            }
-        } catch (error) {
-            console.error("❌ Error in voiceStateUpdate XP handling:", error);
-        }
+      } catch (error) {
+        console.error("❌ Error in voiceStateUpdate XP handling:", error);
+      }
     }
 
     // Handle channel switching
-    if (oldState.channelId && newState.channelId && oldState.channelId !== newState.channelId) {
-        const session = voiceSessions.get(member.id);
-        if (session) {
-            session.channelId = newState.channelId;
-            voiceSessions.set(member.id, session);
-            console.log(`🔄 ${member.user.tag} เปลี่ยนห้อง voice`);
-        }
+    if (
+      oldState.channelId &&
+      newState.channelId &&
+      oldState.channelId !== newState.channelId
+    ) {
+      const session = voiceSessions.get(member.id);
+      if (session) {
+        session.channelId = newState.channelId;
+        voiceSessions.set(member.id, session);
+        console.log(`🔄 ${member.user.tag} เปลี่ยนห้อง voice`);
+      }
     }
-});
+  });
 
   client.once("ready", () => {
     voiceSessions.clear();

@@ -1,11 +1,13 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const EconomySystem = require("../utils/economySystem");
+const shop = require("../utils/shopSystem");
+const QuestSystem = require("../utils/questDailySystem"); // Import QuestSystem
 
 const TRANSFER_LIMITS = {
   MIN_AMOUNT: 100, // จำนวนเงินขั้นต่ำที่โอนได้
-  MAX_AMOUNT: 10000, // จำนวนเงินสูงสุดที่โอนได้ต่อครั้ง
+  MAX_AMOUNT: 100000, // จำนวนเงินสูงสุดที่โอนได้ต่อครั้ง
   COOLDOWN: 300000, // 5 นาทีต่อครั้ง
-  FEE_PERCENT: 5, // ค่าธรรมเนียม 5%
+  FEE_PERCENT: 0.05, // ค่าธรรมเนียม 5%
 };
 
 module.exports = {
@@ -59,9 +61,18 @@ module.exports = {
         });
       }
 
-      // คำนวณค่าธรรมเนียม
-      const fee = Math.floor(amount * (TRANSFER_LIMITS.FEE_PERCENT / 100));
+      const effects = await shop.checkEffects(sender.id); // Fix: Changed fromId to sender.id
+      const feeReduction = effects.fee_reduction || 0;
+
+      // คำนวณค่าธรรมเนียมโดยคำนึงถึง fee reduction
+      const baseFee = Math.floor(amount * TRANSFER_LIMITS.FEE_PERCENT);
+      const reducedFeePercent = Math.max(0, TRANSFER_LIMITS.FEE_PERCENT * (1 - feeReduction));
+      const fee = Math.floor(amount * reducedFeePercent);
       const totalAmount = amount + fee;
+
+      // เพิ่มการแสดงผลส่วนลดค่าธรรมเนียม
+      const feeReductionPercent = Math.floor(feeReduction * 100);
+      const actualFeePercent = Math.floor(reducedFeePercent * 100);
 
       // ตรวจสอบยอดเงินผู้โอน
       const senderProfile = await EconomySystem.getProfile(sender.id);
@@ -71,7 +82,11 @@ module.exports = {
           flags: ["Ephemeral"],
         });
       }
-
+      await QuestSystem.updateQuestProgress(
+        sender.id,
+        'transfer_amount',
+        totalAmount
+    );
       // ดำเนินการโอนเงิน
       await EconomySystem.addMoney(sender.id, -totalAmount);
       await EconomySystem.addMoney(receiver.id, amount);
@@ -126,7 +141,7 @@ module.exports = {
           },
           {
             name: "💵 ค่าธรรมเนียม",
-            value: `${fee} บาท (${TRANSFER_LIMITS.FEE_PERCENT}%)`,
+            value: `${fee.toLocaleString()} บาท (${actualFeePercent}%${feeReductionPercent > 0 ? ` -${feeReductionPercent}% ส่วนลด` : ''})`,
             inline: true,
           },
           {

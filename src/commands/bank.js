@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const bankSystem = require('../utils/bankSystem.js');
 const levelSystem = require('../utils/levelSystem');
 const EconomySystem = require('../utils/economySystem');
 
@@ -62,7 +63,7 @@ module.exports = {
                     }
 
                     // ดำเนินการฝากเงิน
-                    const result = await EconomySystem.deposit(interaction.user.id, amount);
+                    const result = await bankSystem.deposit(interaction.user.id, amount);
 
                     if (!result.success) {
                         const errorMessages = {
@@ -120,7 +121,7 @@ module.exports = {
                     }
 
                     // ดำเนินการถอนเงิน
-                    const result = await EconomySystem.withdraw(interaction.user.id, amount);
+                    const result = await bankSystem.withdraw(interaction.user.id, amount);
 
                     if (!result.success) {
                         const errorMessages = {
@@ -170,7 +171,7 @@ module.exports = {
                     const nextLevelLimit = 10000 + ((level + 1) * 1000);
                 
                     // Process interest
-                    const interestResult = await EconomySystem.processInterest(interaction.user.id);
+                    const interestResult = await bankSystem.processInterest(interaction.user.id);
                     let interestField = '';
                     
                     if (interestResult.success && interestResult.amount) {

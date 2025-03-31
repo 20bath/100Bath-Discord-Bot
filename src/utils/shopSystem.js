@@ -6,53 +6,79 @@ class ShopSystem {
     this.items = {
       // อุปกรณ์ถาวร
       permanent: {
-        lucky_charm: {
-          id: "lucky_charm",
-          name: "🍀 Lucky Charm",
-          description: "เพิ่มโอกาสชนะพนัน 10%",
-          price: 15000,
-          type: "permanent",
-          effect: { gambling_luck: 0.1 },
-        },
+        // lucky_charm: {
+        //   id: "lucky_charm",
+        //   name: "🙏 ตะกรุดมหาเฮง",
+        //   description: "เพิ่มโอกาสชนะพนัน 5%",
+        //   price: 75000,
+        //   type: "permanent",
+        //   effect: { gambling_luck: 0.05 },
+        // },
         work_badge: {
           id: "work_badge",
-          name: "💼 Work Badge",
-          description: "เพิ่มรายได้จากการทำงาน 20%",
-          price: 20000,
+          name: "💼 เน็กไทเมืองทอง",
+          description: "เพิ่มรายได้จากการทำงาน 5%",
+          price: 150000,
           type: "permanent",
-          effect: { work_bonus: 0.2 },
+          effect: { work_bonus: 0.05 },
         },
+        illegal_guns: {
+          id: "illegal_guns",
+          name: "🔫 ปืนเถื่อน",
+          description: "เพิ่มเพิ่มโอกาสสำเร็จในการปล้น 10%",
+          price: 250000,
+          type: "permanent",
+          effect: { success_rob_rate: 0.1 },
+        },
+        pig_bank: {
+          id: "pig_bank",
+          name: "🐷 กระปุกหมูเด้ง",
+          description: "เพิ่มวงเงินในธนาคาร 30000 บาท",
+          price: 300000,
+          type: "permanent",
+          effect: { bank_balance: 30000 },
+        }
       },
       // ไอเทมชั่วคราว
       temporary: {
         xp_boost: {
           id: "xp_boost",
-          name: "⭐ XP Boost",
-          description: "เพิ่ม EXP 50% (24 ชั่วโมง)",
-          price: 5000,
-          duration: 86400000, // 24 hours
+          name: "📚 อ่าน TCAS ",
+          description: "เพิ่ม EXP 10% (2 ชั่วโมง)",
+          price: 3000,
+          duration: 7200000, // 24 hours
           type: "temporary",
-          effect: { xp_boost: 0.5 },
+          effect: { xp_boost: 0.1 },
         },
         money_boost: {
           id: "money_boost",
-          name: "💰 Money Boost",
-          description: "เพิ่มรายได้ทั้งหมด 30% (12 ชั่วโมง)",
+          name: "💰 ไลฟ์สด Tiktok",
+          description: "เพิ่มรายได้ทั้งหมด 10% (3 ชั่วโมง)",
           price: 7500,
-          duration: 43200000, // 12 hours
+          duration: 10800000, // 12 hours
           type: "temporary",
-          effect: { money_boost: 0.3 },
+          effect: { money_boost: 0.1 },
         },
+        makeshift_gun: {
+          id: "makeshift_gun",
+          name: "🔫 ปืนกระดาษ",
+          description: "เพิ่มเพิ่มโอกาสสำเร็จในการปล้น 3% (2 ชั่วโมง)",
+          price: 12000,
+          duration: 7200000, // 2 hours
+          type: "temporary",
+          effect: { success_rob_rate: 0.03 },
+        }
+
       },
       // ยศพิเศษ
       roles: {
         vip: {
           id: "vip",
-          name: "👑 VIP",
+          name: "👑 มหาเศรษฐีพันล้าน(VIP)",
           description: "เพิ่มรายได้ 15%, ลดค่าธรรมเนียม 20%",
-          price: 50000,
+          price: 10000000,
           type: "role",
-          roleId: "1353881139122671677",
+          roleId: "1348538334603120644",
           effect: {
             income_boost: 0.15,
             fee_reduction: 0.2,
@@ -86,7 +112,7 @@ class ShopSystem {
 
   // Add method to get item details for display
   getItemDetails(item) {
-    let details = `💰 ราคา: ${item.price} บาท\n📝 ${item.description}\n`;
+    let details = `💰 ราคา: ${item.price} บาท\n`;
 
     if (item.duration) {
       const hours = item.duration / 3600000;
@@ -97,7 +123,7 @@ class ShopSystem {
         details += '✨ ผลของไอเทม:\n';
         for (const [effect, value] of Object.entries(item.effect)) {
             const effectName = this.getEffectName(effect);
-            details += `• ${effectName}: +${(value * 100).toFixed(0)}%\n`;
+            details += `📝${effectName}: +${(value * 100).toFixed(0)}%\n`;
         }
     }
 
@@ -113,6 +139,8 @@ class ShopSystem {
       money_boost: "รายได้ทั้งหมด",
       income_boost: "รายได้โดยรวม",
       fee_reduction: "ลดค่าธรรมเนียม",
+      success_rob_rate: "โอกาสสำเร็จในการปล้น",
+      bank_balance: "วงเงินในธนาคาร",
     };
     return effectNames[effect] || effect;
   }
@@ -146,10 +174,15 @@ class ShopSystem {
     return false;
   }
 
-  async buyItem(userId, itemId, guildId = null) {
+  async buyItem(userId, itemId, guildId = null, client = null) {
     try {
       const item = this.findItem(itemId);
       if (!item) return { success: false, reason: "item_not_found" };
+
+      // Check if client is provided for role items
+      if (item.type === "role" && (!guildId || !client)) {
+        return { success: false, reason: "guild_or_client_required" };
+      }
 
       const profile = await economy.getProfile(userId);
       if (!profile) return { success: false, reason: "no_profile" };
@@ -175,7 +208,7 @@ class ShopSystem {
       const now = Date.now();
       const newItem = {
         id: itemId,
-        active: false,
+        active: true,
       };
 
       // ตั้งเวลาหมดอายุถ้าเป็นไอเทมชั่วคราว
@@ -183,6 +216,20 @@ class ShopSystem {
         newItem.expiresAt = now + item.duration;
       }
 
+      // Handle role items
+      if (item.type === "role" && item.roleId) {
+        try {
+          const guild = await client.guilds.fetch(guildId);
+          const member = await guild.members.fetch(userId);
+          await member.roles.add(item.roleId);
+          newItem.active = true;
+        } catch (error) {
+          console.error("Error adding role:", error);
+          return { success: false, reason: "role_add_failed" };
+        }
+      }
+
+      // เพิ่มไอเทมใหม่ลงในกระเป๋า
       profile.inventory.push(newItem);
 
       // หักเงิน
@@ -209,33 +256,37 @@ class ShopSystem {
 
     await this.cleanupExpiredItems(userId);
 
-    const effects = {};
+    const effects = {
+        gambling_luck: 0,
+        work_bonus: 0,
+        xp_boost: 0,
+        money_boost: 0,
+        income_boost: 0,
+        fee_reduction: 0
+    };
+
     const now = Date.now();
 
     // ตรวจสอบและรวมผลของไอเทมที่ใช้งานอยู่
     for (const inventoryItem of profile.inventory) {
-      const item = this.findItem(inventoryItem.id);
-      if (!item || !inventoryItem.active) continue;
+        const item = this.findItem(inventoryItem.id);
+        if (!item || !inventoryItem.active) continue;
 
-      // ข้ามไอเทมที่หมดอายุ
-      if (inventoryItem.expiresAt && inventoryItem.expiresAt < now) {
-        continue;
-      }
+        // ข้ามไอเทมที่หมดอายุ
+        if (inventoryItem.expiresAt && inventoryItem.expiresAt < now) {
+            continue;
+        }
 
-      // รวมผลของไอเทม
-      if (item.effect && typeof item.effect === 'object') {
-        for (const [effectType, value] of Object.entries(item.effect)) {
-            if (effectType in effects) {
-                effects[effectType] += value;
-            } else {
-                effects[effectType] = value;
+        // รวมผลของไอเทม
+        if (item.effect && typeof item.effect === 'object') {
+            for (const [effectType, value] of Object.entries(item.effect)) {
+                effects[effectType] = (effects[effectType] || 0) + value;
             }
         }
     }
-    }
 
     return effects;
-  }
+}
 
   async useItem(userId, itemId) {
     const profile = await economy.getProfile(userId);

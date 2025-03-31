@@ -20,7 +20,7 @@ module.exports = {
             
             // สร้าง embed หลัก
             const embed = new EmbedBuilder()
-                .setTitle('🏪 ร้านค้า (ยังใช้สินค้าไม่ได้ ถ้าซื้อไปจะไม่รับผิดชอบ)')
+                .setTitle('🏪 ร้านค้า')
                 .setColor('#ffd700')
                 .setDescription('เลือกหมวดหมู่สินค้าที่ต้องการ')
                 .addFields({
@@ -77,23 +77,61 @@ module.exports = {
                 if (i.customId === 'shop_category') {
                     const category = i.values[0];
                     const items = ShopSystem.getShopItems()[category];
+                    const categoryInfo = ShopSystem.getCategoryInfo()[category];
 
                     // สร้าง embed แสดงสินค้าในหมวดหมู่
                     const categoryEmbed = new EmbedBuilder()
                         .setTitle(`🏪 ร้านค้า - ${getCategoryName(category)}`)
                         .setColor('#ffd700')
-                        .setDescription('เลือกสินค้าที่ต้องการซื้อ')
-                        .addFields({
-                            name: '💰 ยอดเงินของคุณ',
-                            value: `${profile.balance} บาท`,
+                        .setDescription(categoryInfo.description)
+                        .addFields(
+                            {
+                                name: '💰 ยอดเงินของคุณ',
+                                value: `${profile.balance} บาท`,
+                                inline: true
+                            },
+                            {
+                                name: '📦 รายการสินค้า',
+                                value: '```\nเลือกสินค้าด้านล่างเพื่อดูรายละเอียด\n```',
+                                inline: false
+                            }
+                        );
+
+                    // Add item details to embed
+                    Object.values(items).forEach(item => {
+                        categoryEmbed.addFields({
+                            name: item.name,
+                            value: ShopSystem.getItemDetails(item),
                             inline: true
                         });
+                    });
+
+                    // เพิ่มคำอธิบายเพิ่มเติมตามประเภท
+                    if (category === 'permanent') {
+                        categoryEmbed.addFields({
+                            name: '📝 หมายเหตุ',
+                            value: '• ไอเทมถาวรสามารถใช้ได้ตลอด\n• เปิดใช้งานอัตโนมัติหลังซื้อ\n• ซื้อได้เพียงชิ้นเดียวต่อประเภท',
+                            inline: false
+                        });
+                    } else if (category === 'temporary') {
+                        categoryEmbed.addFields({
+                            name: '⚠️ คำเตือน',
+                            value: '• ไอเทมจะเริ่มนับเวลาเมื่อเปิดใช้งาน\n• หมดอายุตามเวลาที่กำหนด',
+                            inline: false
+                        });
+                    } else if (category === 'roles') {
+                        categoryEmbed.addFields({
+                            name: '👑 สิทธิพิเศษ',
+                            value: '• ได้รับยศทันทีหลังซื้อ\n• มีผลบวกพิเศษหลายอย่าง\n• แสดงสถานะพิเศษในเซิร์ฟเวอร์',
+                            inline: false
+                        });
+                    }
 
                     // สร้างปุ่มสำหรับแต่ละไอเทม
                     const buttons = Object.values(items).map(item => {
                         return new ButtonBuilder()
                             .setCustomId(`buy_${item.id}`)
-                            .setLabel(`${item.name} (${item.price} บาท)`)
+                            .setLabel(`ซื้อ ${item.name} (${item.price.toLocaleString()} บาท)`)
                             .setStyle(ButtonStyle.Primary)
                             .setDisabled(profile.balance < item.price);
                     });
@@ -123,7 +161,8 @@ module.exports = {
                     const result = await ShopSystem.buyItem(
                         i.user.id, 
                         itemId,
-                        interaction.guildId
+                        interaction.guildId,
+                        interaction.client // Pass the client instance
                     );
 
                     if (!result.success) {
@@ -131,6 +170,8 @@ module.exports = {
                             'insufficient_funds': '❌ ยอดเงินไม่เพียงพอ',
                             'already_owned': '❌ คุณมีไอเทมนี้อยู่แล้ว',
                             'item_not_found': '❌ ไม่พบไอเทมนี้',
+                            'role_add_failed': '❌ ไม่สามารถเพิ่มยศได้ กรุณาติดต่อแอดมิน',
+                            'guild_or_client_required': '❌ ไม่สามารถซื้อยศได้ในขณะนี้',
                         };
 
                         await i.reply({

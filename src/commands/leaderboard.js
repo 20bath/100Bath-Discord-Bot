@@ -1,108 +1,163 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { db } = require('../config/firebase');
-const { getRequiredXP } = require('../utils/levelSystem');
+const levelSystem = require('../utils/levelSystem');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('leaderboard')
-        .setDescription('แสดงอันดับผู้เล่นที่เลเวลสูงสุด 10 อันดับแรก')
+        .setDescription('แสดงอันดับผู้เล่นในด้านต่างๆ')
         .addStringOption(option =>
-            option
-                .setName('type')
-                .setDescription('ประเภทการแสดงผล')
+            option.setName('category')
+                .setDescription('หมวดหมู่ที่ต้องการดู')
+                .setRequired(true)
                 .addChoices(
-                    { name: '🎮 เลเวล', value: 'level' },
-                    { name: '⭐ XP', value: 'xp' }
-                )
-                .setRequired(false)
-        ),
+                    { name: '📊 เลเวล', value: 'level' },
+                    { name: '💰 เงินทั้งหมด', value: 'total_money' },
+                    { name: '💼 ทำงานมากที่สุด', value: 'work' },
+                    { name: '💸 ใช้เงินมากที่สุด', value: 'spending' },
+                    { name: '🎲 กำไรจากการพนัน', value: 'gambling' },
+                    { name: '🤝 โอนเงินสะสม', value: 'transfer' }
+                )),
 
     async execute(interaction) {
         await interaction.deferReply();
 
         try {
-            const type = interaction.options.getString('type') || 'level';
-            const guild = interaction.guild;
+            const category = interaction.options.getString('category');
+            let title, description, data;
 
-            // ดึงข้อมูลผู้เล่นทั้งหมดที่อยู่ใน guild นี้
-            const usersRef = db.collection('users');
-            const snapshot = await usersRef.get();
+            // Get all economy profiles
+            const economySnapshot = await db.collection('economy').get();
+            const economyData = economySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
 
-            let leaderboardData = [];
-
-           
-            // รวบรวมข้อมูลผู้เล่น
-            for (const doc of snapshot.docs) {
-                const data = doc.data();
-                    try {
-                        const member = await guild.members.fetch(doc.id);
-                        if (member) {
-                            leaderboardData.push({
-                                id: doc.id,
-                                username: member.user.username,
-                                level: data.level || 1,
-                                xp: data.xp || 0
-                            });
-                        }
-                    } catch (error) {
-                        console.error(`Cannot fetch member ${doc.id}:`, error);
-                    }
-                
+            // Get all level data if needed
+            let levelData = {};
+            if (category === 'level') {
+                const levelSnapshot = await db.collection('users').get();
+                levelData = Object.fromEntries(
+                    levelSnapshot.docs.map(doc => [doc.id, doc.data()])
+                );
             }
 
-            // เรียงลำดับตามประเภทที่เลือก
-            leaderboardData.sort((a, b) => {
-                if (type === 'level') {
-                    if (b.level === a.level) {
-                        return b.xp - a.xp;
-                    }
-                    return b.level - a.level;
-                }
-                return b.xp - a.xp;
-            });
+            switch (category) {
+                case 'level':
+                    title = '📊 อันดับเลเวลสูงสุด';
+                    description = 'ผู้เล่นที่มีเลเวลสูงที่สุด 10 อันดับแรก';
+                    data = Object.entries(levelData)
+                        .map(([id, data]) => ({
+                            id,
+                            value: data.level || 1,
+                            detail: `Level ${data.level || 1}`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
 
-            // เลือก 10 อันดับแรก
-            leaderboardData = leaderboardData.slice(0, 10);
+                case 'total_money':
+                    title = '💰 อันดับคนรวยที่สุด';
+                    description = 'ผู้เล่นที่มีเงินมากที่สุด 10 อันดับแรก (รวมเงินในกระเป๋าและธนาคาร)';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: (profile.balance || 0) + (profile.bankBalance || 0),
+                            detail: `💵 ${(profile.balance || 0) + (profile.bankBalance || 0)} บาท`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
 
-            // สร้าง embed
+                case 'work':
+                    title = '💼 อันดับคนขยันทำงาน';
+                    description = 'ผู้เล่นที่ทำงานมากที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: profile.stats?.workStats?.jobsCompleted || 0,
+                            detail: `🔨 ทำงาน ${profile.stats?.workStats?.jobsCompleted || 0} ครั้ง`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+
+                case 'spending':
+                    title = '💸 อันดับการใช้จ่าย';
+                    description = 'ผู้เล่นที่ใช้เงินมากที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: profile.stats?.totalLost || 0,
+                            detail: `💸 ${profile.stats?.totalLost || 0} บาท`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+
+                case 'gambling':
+                    title = '🎲 อันดับกำไรจากการพนัน';
+                    description = 'ผู้เล่นที่ทำกำไรจากการพนันมากที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: (profile.stats?.gamblingStats?.totalEarned || 0) - (profile.stats?.gamblingStats?.totalLost || 0),
+                            detail: `🎲 กำไร ${(profile.stats?.gamblingStats?.totalEarned || 0) - (profile.stats?.gamblingStats?.totalLost || 0)} บาท`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+
+                case 'transfer':
+                    title = '🤝 อันดับการโอนเงิน';
+                    description = 'ผู้เล่นที่โอนเงินสะสมมากที่สุด 10 อันดับแรก';
+                    data = economyData
+                        .map(profile => ({
+                            id: profile.userId,
+                            value: profile.stats?.transferStats?.sent?.total || 0,
+                            detail: `🤝 โอนไป ${profile.stats?.transferStats?.sent?.total || 0} บาท`
+                        }))
+                        .sort((a, b) => b.value - a.value);
+                    break;
+            }
+
+            // Get user's rank before slicing data
+            const userRank = data.findIndex(item => item.id === interaction.user.id) + 1;
+            const userStats = data.find(item => item.id === interaction.user.id);
+
+            // Get top 5 only (changed from 10)
+            data = data.slice(0, 5);
+
+            // Create embed
             const embed = new EmbedBuilder()
-                .setTitle(`🏆 อันดับผู้เล่นสูงสุด - ${type === 'level' ? 'เลเวล' : 'XP'}`)
+                .setTitle(title)
                 .setColor('#FFD700')
-                .setDescription('10 อันดับแรกของเซิร์ฟเวอร์')
-                .setThumbnail(interaction.guild.iconURL({ dynamic: true }));
+                .setDescription(description)
+                .setTimestamp();
 
-            // สร้างข้อความแสดงผล
-            const fields = leaderboardData.map((user, index) => {
-                const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}.`;
-                const requiredXP = getRequiredXP(user.level);
-                const progress = type === 'level' 
-                    ? `[${user.xp}/${requiredXP} XP]`
-                    : `(Level ${user.level})`;
-
-                return {
-                    name: `${medal} ${user.username}`,
-                    value: type === 'level'
-                        ? `Level ${user.level} ${progress}`
-                        : `${user.xp} XP ${progress}`,
-                    inline: false
-                };
-            });
-
-            if (fields.length === 0) {
-                embed.setDescription('❌ ยังไม่มีข้อมูลผู้เล่นในเซิร์ฟเวอร์นี้');
-            } else {
-                embed.addFields(fields);
+            // Add fields for each player
+            for (let i = 0; i < data.length; i++) {
+                const member = await interaction.guild.members.fetch(data[i].id).catch(() => null);
+                if (member) {
+                    let name = `${i + 1}. ${member.user.username}`;
+                    // Add crown emoji for top 1
+                    if (i === 0) name = `👑 ${name}`;
+                    embed.addFields({
+                        name: name,
+                        value: data[i].detail,
+                        inline: false
+                    });
+                }
             }
 
-            // เพิ่มตำแหน่งของผู้ใช้ที่ใช้คำสั่ง
-            const userPosition = leaderboardData.findIndex(user => user.id === interaction.user.id);
-            if (userPosition === -1) {
+            // Add user's rank in footer if not in top 5
+            if (userRank > 0) {
+                const rankText = userRank <= 5 
+                    ? '✨ คุณอยู่ในท็อป 5!'
+                    : `📊 อันดับของคุณ: #${userRank} (${userStats.detail})`;
                 embed.setFooter({ 
-                    text: '❌ คุณยังไม่มีข้อมูลในระบบ' 
+                    text: rankText,
+                    iconURL: interaction.user.displayAvatarURL()
                 });
             } else {
                 embed.setFooter({ 
-                    text: `🎯 อันดับของคุณ: #${userPosition + 1}` 
+                    text: '❌ คุณยังไม่มีข้อมูลในอันดับนี้',
+                    iconURL: interaction.user.displayAvatarURL()
                 });
             }
 
@@ -110,10 +165,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Error in leaderboard command:', error);
-            await interaction.editReply({
-                content: '❌ เกิดข้อผิดพลาดในการแสดงอันดับ',
-                ephemeral: true
-            });
+            await interaction.editReply('❌ เกิดข้อผิดพลาดในการแสดงอันดับ');
         }
-    },
+    }
 };

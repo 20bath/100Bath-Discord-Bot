@@ -1,111 +1,148 @@
 const { Collection } = require("discord.js");
 const economy = require("./economySystem");
 const levelSystem = require("./levelSystem");
+const achievement = require("./achievementSystem");
+const shop = require("./shopSystem");
+const QuestSystem = require("./questDailySystem");
 
 class WorkSystem {
   constructor() {
-    this.jobs = [
-      {
-        id: "junk",
-        name: "🗑️ เก็บขยะขาย", 
-        requiredLevel: 0,
-        cooldown: 5000, // 5 seconds
-        pay: { base: 10, multiplier: 1.1 },
-        exp: { base: 3, multiplier: 1.05 },
-        items: [
-          { id: "trash", name: "🚮 ขยะ", chance: 0.2, value: 50 },
-          { id: "recyclable", name: "♻️ ขยะรีไซเคิล", chance: 0.1, value: 100 },
-        ],
-      },
-      {
-        id: "office",
-        name: "🏢 พนักงานออฟฟิศ",
-        requiredLevel: 1,
-        cooldown: 3 * 60 * 1000, // 3 minutes
-        pay: { base: 100, multiplier: 1.2 },
-        exp: { base: 5, multiplier: 1.1 },
-        items: [
-          { id: "document", name: "📄 เอกสารสำคัญ", chance: 0.1, value: 300 },
-          { id: "coffee", name: "☕ กาแฟพรีเมียม", chance: 0.3, value: 100 },
-        ],
-      },
-      {
-        id: "taxi",
-        name: "🚗 คนขับแท็กซี่",
-        requiredLevel: 5,
-        cooldown: 3 * 60 * 1000, // 3 minutes
-        pay: { base: 150, multiplier: 1.3 },
-        exp: { base: 8, multiplier: 1.15 },
-        items: [
-          {
-            id: "lost_wallet",
-            name: "👛 กระเป๋าเงินที่ลูกค้าลืม",
-            chance: 0.05,
-            value: 500,
-          },
-          { id: "tip", name: "💵 ทิปพิเศษ", chance: 0.1, value: 200 },
-        ],
-      },
-      {
-        id: "chef",
-        name: "👨‍🍳 เชฟ",
-        requiredLevel: 10,
-        cooldown: 3 * 60 * 1000, // 3 minutes
-        pay: { base: 200, multiplier: 1.4 },
-        exp: { base: 12, multiplier: 1.2 },
-        items: [
-          {
-            id: "rare_recipe",
-            name: "📒 สูตรอาหารลับ",
-            chance: 0.03,
-            value: 1000,
-          },
-          {
-            id: "gourmet_dish",
-            name: "🍽️ อาหารระดับพรีเมียม",
-            chance: 0.15,
-            value: 400,
-          },
-        ],
-      },
-      {
-        id: "programmer",
-        name: "💻 โปรแกรมเมอร์",
-        requiredLevel: 20,
-        cooldown: 3 * 60 * 1000, // 3 minutes
-        pay: { base: 300, multiplier: 1.5 },
-        exp: { base: 15, multiplier: 1.25 },
-        items: [
-          {
-            id: "software_license",
-            name: "🔑 License ซอฟต์แวร์",
-            chance: 0.02,
-            value: 2000,
-          },
-          { id: "crypto", name: "🪙 เหรียญ Crypto", chance: 0.1, value: 800 },
-        ],
-      },
-      {
-        id: "doctor",
-        name: "👨‍⚕️ หมอ",
-        requiredLevel: 30,
-        cooldown: 3 * 60 * 1000, // 3 minutes
-        pay: { base: 500, multiplier: 1.6 },
-        exp: { base: 20, multiplier: 1.3 },
-        items: [
-          {
-            id: "medical_research",
-            name: "🔬 ผลวิจัยทางการแพทย์",
-            chance: 0.01,
-            value: 5000,
-          },
-          { id: "medicine", name: "💊 ยาหายาก", chance: 0.08, value: 1200 },
-        ],
-      },
-    ];
+    (this.gems = {
+      common: { name: "💎 100BathGems ", chance: 0.7, value: 10 },
+      // uncommon: { name: "🔮 เพชรแห่งการทำนาย", chance: 0.05, value: 800 },
+      // rare: { name: "🪐 เพชรแห่งโชค", chance: 0.01, value: 1000 },
+      // epic: { name: "💎 เพชรแท้", chance: 0.005, value: 10000 }
+    }),
+      (this.jobs = [
+        {
+          id: "junk",
+          name: "🗑️ เก็บขยะขาย",
+          requiredLevel: 0,
+          cooldown: 5000, // 10 seconds
+          pay: { base: 20, multiplier: 1.1 },
+          exp: { base: 3, multiplier: 1.05 },
+          items: [
+            { id: "trash", name: "🚮 ขยะ", chance: 0.2, value: 50 },
+            {
+              id: "recyclable",
+              name: "♻️ ขยะรีไซเคิล",
+              chance: 0.1,
+              value: 100,
+            },
+          ],
+          gems: ["common"], // เพิ่มโอกาสดรอปเพชรธรรมดา
+        },
+        {
+          //เก็บผลไม้ขาย
+          id: "fruit",
+          name: "🍏 เก็บผลไม้",
+          requiredLevel: 0,
+          cooldown: 5000, // 5 seconds
+          pay: { base: 25, multiplier: 1.1 },
+          exp: { base: 3, multiplier: 1.05 },
+          items: [
+            { id: "trash", name: "🍎 ผลไม้คุณภาพค่อนข้างดี", chance: 0.25, value: 40 },
+            {
+              id: "recyclable",
+              name: "🍎 ผลไม้คุณภาพดี",
+              chance: 0.2,
+              value: 50,
+            },
+          ],
+          gems: ["common"], // เพิ่มโอกาสดรอปเพชรธรรมดา
+        },
+        {
+          id: "office",
+          name: "🏢 พนักงานออฟฟิศ",
+          requiredLevel: 1,
+          cooldown: 1 * 60 * 1000, // 3 minutes
+          pay: { base: 300, multiplier: 1.2 },
+          exp: { base: 5, multiplier: 1.1 },
+          items: [
+            { id: "document", name: "📄 เอกสารสำคัญ", chance: 0.1, value: 300 },
+            { id: "coffee", name: "☕ กาแฟพรีเมียม", chance: 0.3, value: 100 },
+          ],
+          gems: ["common"], // เพิ่มโอกาสดรอปเพชรธรรมดา
+        },
+        {
+          id: "taxi",
+          name: "🚗 คนขับแท็กซี่",
+          requiredLevel: 5,
+          cooldown: 2 * 60 * 1000, // 3 minutes
+          pay: { base: 250, multiplier: 1.3 },
+          exp: { base: 8, multiplier: 1.15 },
+          items: [
+            {
+              id: "lost_wallet",
+              name: "👛 กระเป๋าเงินที่ลูกค้าลืม",
+              chance: 0.05,
+              value: 500,
+            },
+            { id: "tip", name: "💵 ทิปพิเศษ", chance: 0.1, value: 200 },
+          ],
+          gems: ["common"], // เพิ่มโอกาสดรอปเพชรธรรมดา
+        },
+        {
+          id: "chef",
+          name: "👨‍🍳 เชฟ",
+          requiredLevel: 10,
+          cooldown: 2 * 60 * 1000, // 3 minutes
+          pay: { base: 500, multiplier: 1.4 },
+          exp: { base: 12, multiplier: 1.2 },
+          items: [
+            {
+              id: "rare_recipe",
+              name: "📒 สูตรอาหารลับ",
+              chance: 0.03,
+              value: 1000,
+            },
+            {
+              id: "gourmet_dish",
+              name: "🍽️ อาหารระดับพรีเมียม",
+              chance: 0.15,
+              value: 400,
+            },
+          ],
+          gems: ["common"], // เพิ่มโอกาสดรอปเพชรธรรมดา
+        },
+        {
+          id: "programmer",
+          name: "💻 โปรแกรมเมอร์",
+          requiredLevel: 20,
+          cooldown: 3 * 60 * 1000, // 3 minutes
+          pay: { base: 800, multiplier: 1.5 },
+          exp: { base: 15, multiplier: 1.25 },
+          items: [
+            {
+              id: "software_license",
+              name: "🔑 License ซอฟต์แวร์",
+              chance: 0.02,
+              value: 2000,
+            },
+            { id: "crypto", name: "🪙 เหรียญ Crypto", chance: 0.1, value: 800 },
+          ],
+          gems: ["common"], // เพิ่มโอกาสดรอปเพชรธรรมดา
+        },
+        {
+          id: "doctor",
+          name: "👨‍⚕️ หมอ",
+          requiredLevel: 30,
+          cooldown: 3 * 60 * 1000, // 3 minutes
+          pay: { base: 1000, multiplier: 1.6 },
+          exp: { base: 20, multiplier: 1.3 },
+          items: [
+            {
+              id: "medical_research",
+              name: "🔬 ผลวิจัยทางการแพทย์",
+              chance: 0.01,
+              value: 5000,
+            },
+            { id: "medicine", name: "💊 ยาหายาก", chance: 0.08, value: 1200 },
+          ],
+          gems: ["common"], // เพิ่มโอกาสดรอปเพชรธรรมดา
+        },
+      ]);
   }
-
-  
 
   getJobs() {
     return this.jobs;
@@ -113,18 +150,18 @@ class WorkSystem {
 
   getJobChoices() {
     try {
-    return this.jobs.map((job) => ({
-      name: job.name,
-      value: job.id,
-    }));
+      return this.jobs.map((job) => ({
+        name: job.name,
+        value: job.id,
+      }));
     } catch (error) {
       console.error(error);
     }
   }
   async getJobLevel(userId, jobId) {
     try {
-    const profile = await economy.getProfile(userId);
-    return profile.jobLevels?.[jobId] || 0;
+      const profile = await economy.getProfile(userId);
+      return profile.jobLevels?.[jobId] || 0;
     } catch (error) {
       console.error(error);
     }
@@ -140,10 +177,34 @@ class WorkSystem {
     return Math.floor(baseExp * (1 + growthPercent * jobLevel));
   }
 
+  // Add after calculateExp method
+
+  rollForGems(job, jobLevel) {
+    const gems = [];
+    if (!job.gems) return gems;
+
+    for (const gemType of job.gems) {
+      const gem = this.gems[gemType];
+      if (!gem) continue;
+
+      // Increase chance with job level (max 2x at level 50)
+      const levelBonus = Math.min(jobLevel * 0.02, 1);
+      const dropChance = gem.chance * (1 + levelBonus);
+
+      if (Math.random() < dropChance) {
+        gems.push({
+          type: gemType,
+          ...gem,
+        });
+      }
+    }
+    return gems;
+  }
+
   async checkJobCooldown(userId, jobId) {
     try {
-    const cooldownKey = `work_${jobId}`;
-    return await economy.checkCooldown(userId, cooldownKey);
+      const cooldownKey = `work_${jobId}`;
+      return await economy.checkCooldownCache(userId, cooldownKey);
     } catch (error) {
       console.error(error);
     }
@@ -152,8 +213,8 @@ class WorkSystem {
   // Add new method to set job-specific cooldown
   async setJobCooldown(userId, jobId, duration) {
     try {
-    const cooldownKey = `work_${jobId}`;
-    await economy.setCooldown(userId, cooldownKey, duration);
+      const cooldownKey = `work_${jobId}`;
+      await economy.setCooldownCache(userId, cooldownKey, duration);
     } catch (error) {
       console.error(error);
     }
@@ -177,9 +238,21 @@ class WorkSystem {
 
       const jobLevel = await this.getJobLevel(user.id, job.id);
 
-      // คำนวณรายได้และ exp
+      // Get active effects
+      const effects = await shop.checkEffects(user.id);
+      const workBonus = effects.work_bonus || 0;
+      const moneyBoost = effects.money_boost || 0;
+      const incomeBoost = effects.income_boost || 0;
+
+      // Calculate total bonus
+      const totalBonus = 1 + workBonus + moneyBoost + incomeBoost;
+
+      // Apply bonus to earnings
       const basePay = this.calculatePay(job.pay.base, jobLevel);
-      const amount = Math.floor(basePay * (0.8 + Math.random() * 0.4));
+      const amount = Math.floor(
+        basePay * (0.8 + Math.random() * 0.4) * totalBonus
+      );
+
       const expGain = this.calculateExp(job.exp.base, jobLevel);
 
       // Try to get items
@@ -200,16 +273,32 @@ class WorkSystem {
         newJobLevel++;
       }
 
+      // Roll for gems
+      const droppedGems = this.rollForGems(job, jobLevel);
+
+      await QuestSystem.updateQuestProgress(
+        user.id,
+        'work_earnings',
+        amount
+    );
+
       // Update profile
-      await economy.updateProfile(user.id, {
+      const updateData = {
         [`jobLevels.${job.id}`]: newJobLevel,
         [`jobExp.${job.id}`]: currentJobExp % jobExpNeeded,
-        "stats.workStats.totalWorked":
-          profile.stats.workStats.totalWorked + amount,
-        "stats.workStats.jobsCompleted":
-          profile.stats.workStats.jobsCompleted + 1,
-        "stats.workStats.lastPaycheck": amount,
-      });
+        "stats.workStats.totalWorked": profile.stats.workStats.totalWorked + amount,
+        "stats.workStats.jobsCompleted": profile.stats.workStats.jobsCompleted + 1,
+        "stats.workStats.lastPaycheck": amount
+      };
+
+      // Add gems if any dropped
+      if (droppedGems.length > 0) {
+        const currentGems = profile.gems || {};
+        droppedGems.forEach((gem) => {
+          currentGems[gem.type] = (currentGems[gem.type] || 0) + 1;
+        });
+        updateData.gems = currentGems;
+      }
 
       // Add items to inventory if any
       if (items.length > 0) {
@@ -223,12 +312,26 @@ class WorkSystem {
             obtainedAt: Date.now(),
           });
         });
-        await economy.updateProfile(user.id, { inventory });
+        updateData.inventory = inventory;
       }
+
+      // Update profile with all changes at once
+      await economy.updateProfile(user.id, updateData);
+
+
 
       // Add money and exp
       const newBalance = await economy.addMoney(user.id, amount);
       await levelSystem.addXP(user, expGain);
+
+      const newAchievements = await achievement.checkAchievements(user.id);
+      if (newAchievements.length > 0) {
+        const achievementEmbed = achievement.getAchievementEmbed(
+          user.id,
+          newAchievements
+        );
+        await interaction.channel.send({ embeds: [achievementEmbed] });
+      }
 
       return {
         success: true,
@@ -238,6 +341,7 @@ class WorkSystem {
         newBalance,
         exp: expGain,
         items: items.length > 0 ? items : null,
+        gems: droppedGems.length > 0 ? droppedGems : null,
         levelUp: newJobLevel > jobLevel,
       };
     } catch (error) {

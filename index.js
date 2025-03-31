@@ -5,6 +5,8 @@ const path = require('path');
 const adminCommand = require("./src/commands/prefix/admin");
 const joinLeave = require("./src/events/joinLeave");
 const levelSystem = require("./src/utils/levelSystem");
+const runCleanup = require("./src/utils/cleanup");
+const robEvents = require("./src/events/robEvent");
 
 const client = new Client({
   intents: [
@@ -23,6 +25,8 @@ adminCommand(client);
 //events
 joinLeave(client);
 levelSystem(client);
+robEvents(client);
+
 
 
 client.commands = new Collection();
@@ -45,6 +49,9 @@ client.commands = new Collection();
     try {
       await client.application.commands.set(commands);
       console.log('✅ Registered commands:', commands.map(cmd => cmd.name).join(', '));
+      runCleanup();
+      console.log('✅ runCleanup ready.')
+      
     } catch (error) {
       console.error('❌ Error registering commands:', error);
     }
