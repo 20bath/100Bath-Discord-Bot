@@ -13,6 +13,10 @@ class WorkSystem {
       // rare: { name: "🪐 เพชรแห่งโชค", chance: 0.01, value: 1000 },
       // epic: { name: "💎 เพชรแท้", chance: 0.005, value: 10000 }
     }),
+      (this.GEM_CONFIG = {
+        DAILY_LIMIT: 500,
+        RESET_HOUR: 0, // Reset at midnight
+      }),
       (this.jobs = [
         {
           id: "junk",
@@ -41,7 +45,12 @@ class WorkSystem {
           pay: { base: 25, multiplier: 1.1 },
           exp: { base: 3, multiplier: 1.05 },
           items: [
-            { id: "trash", name: "🍎 ผลไม้คุณภาพค่อนข้างดี", chance: 0.25, value: 40 },
+            {
+              id: "trash",
+              name: "🍎 ผลไม้คุณภาพค่อนข้างดี",
+              chance: 0.25,
+              value: 40,
+            },
             {
               id: "recyclable",
               name: "🍎 ผลไม้คุณภาพดี",
@@ -177,24 +186,51 @@ class WorkSystem {
     return Math.floor(baseExp * (1 + growthPercent * jobLevel));
   }
 
-  // Add after calculateExp method
+  // Add new method to check daily gems
+  async getDailyGemsEarned(userId) {
+    const profile = await economy.getProfile(userId);
+    const now = new Date();
+    const lastGemReset = profile.lastGemReset ? new Date(profile.lastGemReset) : null;
 
-  rollForGems(job, jobLevel) {
+    // Reset if it's a new day
+    if (!lastGemReset || 
+        lastGemReset.getDate() !== now.getDate() || 
+        lastGemReset.getMonth() !== now.getMonth() || 
+        lastGemReset.getFullYear() !== now.getFullYear()) {
+      await economy.updateProfile(userId, {
+        dailyGemsEarned: 0,
+        lastGemReset: now.getTime()
+      });
+      return 0;
+    }
+
+    return profile.dailyGemsEarned || 0;
+  }
+
+  // Modify rollForGems method
+  async rollForGems(job, jobLevel, userId) {
     const gems = [];
     if (!job.gems) return gems;
+
+    // Check daily limit
+    const dailyGemsEarned = await this.getDailyGemsEarned(userId);
+    if (dailyGemsEarned >= this.GEM_CONFIG.DAILY_LIMIT) {
+      return gems;
+    }
+
+    const gemsRemaining = this.GEM_CONFIG.DAILY_LIMIT - dailyGemsEarned;
 
     for (const gemType of job.gems) {
       const gem = this.gems[gemType];
       if (!gem) continue;
 
-      // Increase chance with job level (max 2x at level 50)
       const levelBonus = Math.min(jobLevel * 0.02, 1);
       const dropChance = gem.chance * (1 + levelBonus);
 
-      if (Math.random() < dropChance) {
+      if (Math.random() < dropChance && gems.length < gemsRemaining) {
         gems.push({
           type: gemType,
-          ...gem,
+          ...gem
         });
       }
     }
@@ -273,31 +309,34 @@ class WorkSystem {
         newJobLevel++;
       }
 
-      // Roll for gems
-      const droppedGems = this.rollForGems(job, jobLevel);
+      // Roll for gems with userId parameter
+      const droppedGems = await this.rollForGems(job, jobLevel, user.id);
 
-      await QuestSystem.updateQuestProgress(
-        user.id,
-        'work_earnings',
-        amount
-    );
+      await QuestSystem.updateQuestProgress(user.id, "work_earnings", amount);
 
       // Update profile
       const updateData = {
         [`jobLevels.${job.id}`]: newJobLevel,
         [`jobExp.${job.id}`]: currentJobExp % jobExpNeeded,
-        "stats.workStats.totalWorked": profile.stats.workStats.totalWorked + amount,
-        "stats.workStats.jobsCompleted": profile.stats.workStats.jobsCompleted + 1,
-        "stats.workStats.lastPaycheck": amount
+        "stats.workStats.totalWorked":
+          profile.stats.workStats.totalWorked + amount,
+        "stats.workStats.jobsCompleted":
+          profile.stats.workStats.jobsCompleted + 1,
+        "stats.workStats.lastPaycheck": amount,
       };
 
-      // Add gems if any dropped
+      // Update daily gems count if gems dropped
       if (droppedGems.length > 0) {
         const currentGems = profile.gems || {};
+        const dailyGemsEarned = (profile.dailyGemsEarned || 0) + droppedGems.length;
+
         droppedGems.forEach((gem) => {
           currentGems[gem.type] = (currentGems[gem.type] || 0) + 1;
         });
+
         updateData.gems = currentGems;
+        updateData.dailyGemsEarned = dailyGemsEarned;
+        updateData.lastGemReset = updateData.lastGemReset || Date.now();
       }
 
       // Add items to inventory if any
@@ -317,8 +356,6 @@ class WorkSystem {
 
       // Update profile with all changes at once
       await economy.updateProfile(user.id, updateData);
-
-
 
       // Add money and exp
       const newBalance = await economy.addMoney(user.id, amount);
@@ -343,6 +380,8 @@ class WorkSystem {
         items: items.length > 0 ? items : null,
         gems: droppedGems.length > 0 ? droppedGems : null,
         levelUp: newJobLevel > jobLevel,
+        dailyGemsEarned: updateData.dailyGemsEarned || 0,
+        gemLimitReached: (updateData.dailyGemsEarned || 0) >= this.GEM_CONFIG.DAILY_LIMIT
       };
     } catch (error) {
       console.error("Error in work system:", error);

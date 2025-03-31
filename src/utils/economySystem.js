@@ -35,6 +35,8 @@ class EconomySystem {
       balance: 0,
       bankBalance: 1000, // เพิ่มยอดเงินในธนาคาร
       bankLimit: 10000, // เพิ่มลิมิตเงินในธนาคาร
+      dailyGemsEarned: 0,
+      lastGemReset: null,
       gems: {
         common: 0,
         rare: 0,
@@ -44,16 +46,16 @@ class EconomySystem {
       gachaStats: {
         totalPulls: 0,
         pityCount: {
-            SSR: 0,
-            SR: 0
+          SSR: 0,
+          SR: 0,
         },
         obtained: {
-            SSR: 0,
-            SR: 0,
-            R: 0,
-            N: 0
-        }
-    },
+          SSR: 0,
+          SR: 0,
+          R: 0,
+          N: 0,
+        },
+      },
       stats: {
         totalEarned: 0,
         totalLost: 0,

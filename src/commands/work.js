@@ -176,6 +176,21 @@ module.exports = {
         });
       }
 
+      // Add to work command embed
+      embed.addFields({
+        name: "💎 เพชรที่ได้วันนี้",
+        value: `${result.dailyGemsEarned}/${WorkSystem.GEM_CONFIG.DAILY_LIMIT}`,
+        inline: true
+      });
+
+      if (result.gemLimitReached) {
+        embed.addFields({
+          name: "⚠️ แจ้งเตือน",
+          value: "คุณได้รับเพชรถึงขีดจำกัดของวันนี้แล้ว",
+          inline: false
+        });
+      }
+
       // แสดงการเลเวลอัพของอาชีพ (ถ้ามี)
       if (result.levelUp) {
         embed.addFields({
