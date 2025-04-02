@@ -14,7 +14,7 @@ class WorkSystem {
       // epic: { name: "💎 เพชรแท้", chance: 0.005, value: 10000 }
     }),
       (this.GEM_CONFIG = {
-        DAILY_LIMIT: 500,
+        DAILY_LIMIT: 350,
         RESET_HOUR: 0, // Reset at midnight
       }),
       (this.jobs = [

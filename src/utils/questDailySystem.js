@@ -7,9 +7,9 @@ class QuestDailySystem {
         3: { gems: 30 },    // 3 วันติดต่อกัน
         7: { gems: 100 },   // 7 วันติดต่อกัน
         14: { gems: 250 },  // 14 วันติดต่อกัน
-        30: { gems: 1000 }, // 30 วันติดต่อกัน
-        100: { gems: 5000 }, // 100 วันติดต่อกัน
-        365: { gems: 10000 }, // 365 วันติดต่อกัน
+        30: { gems: 500 }, // 30 วันติดต่อกัน
+        100: { gems: 1000 }, // 100 วันติดต่อกัน
+        365: { gems: 2000 }, // 365 วันติดต่อกัน
     };
     this.quests = {
       gambling: [
@@ -82,11 +82,15 @@ class QuestDailySystem {
     const lastUpdate = profile.lastQuestReset ? new Date(profile.lastQuestReset) : null;
     let currentStreak = profile.questStreak || 0;
     
-    // Check if the user completed quests yesterday
+    // Check if should reset streak (using same logic as quest reset)
     if (lastUpdate) {
-        const dayDiff = Math.floor((now - lastUpdate) / (1000 * 60 * 60 * 24));
-        if (dayDiff > 1) {
-            // Reset streak if missed a day
+        // Check if it's past midnight
+        if (
+            now.getDate() !== lastUpdate.getDate() ||
+            now.getMonth() !== lastUpdate.getMonth() ||
+            now.getFullYear() !== lastUpdate.getFullYear()
+        ) {
+            // Reset streak if it's a new day
             currentStreak = 0;
         }
     }
@@ -110,7 +114,8 @@ class QuestDailySystem {
     
     // Update streak in profile
     await economy.updateProfile(userId, {
-        questStreak: currentStreak
+        questStreak: currentStreak,
+        lastQuestReset: now.getTime() // เพิ่มบรรทัดนี้
     });
     
     return { currentStreak, streakReward };

@@ -175,15 +175,18 @@ module.exports = {
           inline: false,
         });
       }
-
+      
+      // Get user profile to access dailyGemsEarned
+      const userProfile = await EconomySystem.getProfile(interaction.user.id);
+      
       // Add to work command embed
       embed.addFields({
         name: "💎 เพชรที่ได้วันนี้",
-        value: `${result.dailyGemsEarned}/${WorkSystem.GEM_CONFIG.DAILY_LIMIT}`,
+        value: `${userProfile.dailyGemsEarned}/${WorkSystem.GEM_CONFIG.DAILY_LIMIT}`,
         inline: true
       });
 
-      if (result.gemLimitReached) {
+      if (userProfile.dailyGemsEarned >= WorkSystem.GEM_CONFIG.DAILY_LIMIT) {
         embed.addFields({
           name: "⚠️ แจ้งเตือน",
           value: "คุณได้รับเพชรถึงขีดจำกัดของวันนี้แล้ว",

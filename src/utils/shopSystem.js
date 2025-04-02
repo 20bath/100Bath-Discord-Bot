@@ -26,7 +26,7 @@ class ShopSystem {
           id: "pig_bank",
           name: "🐷 กระปุกหมูเด้ง",
           description: "เพิ่มวงเงินในธนาคาร 50000 บาท",
-          price: 300000,
+          price: 250000,
           type: "permanent",
           effect: { bank_balance: 50000 },
         },
@@ -99,57 +99,96 @@ class ShopSystem {
       permanent: {
         name: "🛡️ อุปกรณ์ถาวร",
         description: "ไอเทมที่ให้ผลถาวร ไม่มีวันหมดอายุ",
+        emoji: "🛡️",
+        color: "#9B59B6",
+        thumbnail: "https://cdn.discordapp.com/attachments/1348498933587152910/1348498933587152910/permanent_banner.png",
+        note: "• ไอเทมถาวรสามารถใช้ได้ตลอด\n• เปิดใช้งานอัตโนมัติหลังซื้อ\n• ซื้อได้เพียงชิ้นเดียวต่อประเภท"
       },
       temporary: {
         name: "⏳ ไอเทมชั่วคราว",
         description: "ไอเทมที่มีระยะเวลาจำกัด ให้ผลเพิ่มขึ้นชั่วคราว",
+        emoji: "⏳",
+        color: "#3498DB",
+        thumbnail: "https://cdn.discordapp.com/attachments/1348498933587152910/1348498933587152911/temporary_banner.png",
+        note: "• ไอเทมจะเริ่มนับเวลาเมื่อเปิดใช้งาน\n• สามารถซื้อได้สูงสุด 5 ชิ้น / ไอเท็ม\n• หมดอายุตามเวลาที่กำหนด"
       },
       roles: {
         name: "👑 ยศพิเศษ",
         description: "ยศที่มอบสิทธิพิเศษและโบนัสพิเศษต่างๆ",
+        emoji: "👑",
+        color: "#F1C40F",
+        thumbnail: "https://cdn.discordapp.com/attachments/1348498933587152910/1348498933587152912/roles_banner.png",
+        note: "• ได้รับยศทันทีหลังซื้อ\n• มีผลบวกพิเศษหลายอย่าง\n• แสดงสถานะพิเศษในเซิร์ฟเวอร์"
       },
       gems: {
         name: "💎 เพชรกาชา",
         description: `**💎 ร้านค้าเพชรกาชา**
         
         📱 **วิธีการซื้อ**
-        1. สแกน QR Code ด้านล่าง
-        2. โอนเงินตามจำนวนที่ต้องการ
-        3. ส่งสลิปที่ <@1348499224656089100>
-        4. หากไม่ได้รับการตอบกลับ ส่งที่ <@343340587396628480>
+        สแกน QR Code ด้านล่าง
+        - โอนเงินตามจำนวนที่ต้องการ
+        - ส่งสลิปที่ <@1348499224656089100> พร้อมบอกว่าซื้อแพ๊คไหน
+        - หากไม่ได้รับการตอบกลับ ส่งที่ <@343340587396628480>
+
+        **🏷️Supporter Discord ได้รับส่วนลด 10% ทุกรายการ🏷️**
         
-        💰 **อัตราแลกเปลี่ยน**
-        • 1 บาท = 1 เพชร
-        • 50 บาท = 50+5 เพชร
-        • 100 บาท = 100+15 เพชร
-        • 500 บาท = 500+100 เพชร
-        
+        💎 **อัตราแลกเปลี่ยน  (1 บาท = 2 เพชร)**
+        • 25 บาท = 50+5 เพชร
+        • 50 บาท = 100+15 เพชร
+        • 250 บาท = 500+100 เพชร
+        • 500 บาท = 1000+250 เพชร
+        • 1000 บาท = 2000+500 เพชร 
+
+        🕐 **รีเซ็ตเพชรรายวัน** 💎
+        ซื้อครั้งที่ 1    50 บาท  
+        ซื้อครั้งที่ 2   250 บาท ได้รับ  100 เพชร
+        ซื้อครั้งที่ 3   500 บาท  ได้รับ  250 เพชร
+
+        ⬆️ **เพิ่มขีดจำกัดเพชรต่อวัน (ถาวร)**
+        เพิ่ม 50 เพชร / วัน  200 บาท
+        เพิ่ม 100 เพชร / วัน  400 บาท
+        เพิ่ม 250 เพชร / วัน  1000 บาท
+
+
         ⚠️ **หมายเหตุ**
         • เพชรจะถูกเพิ่มเข้าบัญชีภายใน 24 ชั่วโมง
-        • ขั้นต่ำในการเติม 50 บาท
+        • ขั้นต่ำในการเติม 25 บาท
         • เก็บสลิปไว้เป็นหลักฐาน`,
-    },
+        emoji: "💎",
+        color: "#2EC4B6",
+        thumbnail: "https://cdn.discordapp.com/attachments/1348498933587152910/1348498933587152913/gems_banner.png"
+      },
     };
   }
 
-  // Add method to get item details for display
+  // Get item details for display with improved formatting
   getItemDetails(item) {
-    let details = `💰 ราคา: ${item.price} บาท\n`;
+    let details = [];
+    
+    // Format price with Thai baht
+    details.push(`💰 **ราคา:** ${item.price.toLocaleString()} บาท`);
 
+    // Add duration if applicable
     if (item.duration) {
       const hours = item.duration / 3600000;
-      details += `⏳ ระยะเวลา: ${hours} ชั่วโมง\n`;
+      details.push(`⏳ **ระยะเวลา:** ${hours} ชั่วโมง`);
     }
 
-    if (item.effect && typeof item.effect === "object") {
-      details += "✨ ผลของไอเทม:\n";
-      for (const [effect, value] of Object.entries(item.effect)) {
-        const effectName = this.getEffectName(effect);
-        details += `📝${item.description}\n`;
-      }
-    }
+    // Add effect description
+    details.push(`📝 **คุณสมบัติ:** ${item.description}`);
 
-    return details;
+    return details.join('\n');
+  }
+
+  // Get formatted item card for display
+  getItemCard(item, userBalance = 0) {
+    const canAfford = userBalance >= item.price;
+    const priceColor = canAfford ? "GREEN" : "RED";
+    
+    let card = `## ${item.name}\n`;
+    card += this.getItemDetails(item);
+    
+    return card;
   }
 
   // Helper method to get effect names in Thai
@@ -166,6 +205,28 @@ class ShopSystem {
       robbery_card: "บัตรป้องกันการปล้น",
     };
     return effectNames[effect] || effect;
+  }
+
+  // Get formatted list of items in a category for pagination
+  getItemsForPage(category, page = 0, itemsPerPage = 3, userBalance = 0) {
+    const categoryItems = this.items[category];
+    if (!categoryItems) return { items: [], totalPages: 0 };
+    
+    const itemsList = Object.values(categoryItems);
+    const totalPages = Math.ceil(itemsList.length / itemsPerPage);
+    
+    // Make sure page is in valid range
+    page = Math.max(0, Math.min(page, totalPages - 1));
+    
+    const startIdx = page * itemsPerPage;
+    const endIdx = Math.min(startIdx + itemsPerPage, itemsList.length);
+    const itemsForPage = itemsList.slice(startIdx, endIdx);
+    
+    return {
+      items: itemsForPage,
+      totalPages,
+      currentPage: page
+    };
   }
 
   findItem(itemId) {
@@ -227,7 +288,7 @@ class ShopSystem {
         const sameItems = profile.inventory.filter(
           (i) => i.id === itemId && (!i.expiresAt || i.expiresAt > now)
         );
-        if (sameItems.length >= 4) {
+        if (sameItems.length >= 5) {
           const embed = new EmbedBuilder()
             .setColor('#FF0000')
             .setTitle('❌ ไม่สามารถซื้อไอเทมได้')
@@ -286,9 +347,6 @@ class ShopSystem {
         profile.inventory.push(newItem);
       }
 
-      
-      
-
       // ตั้งเวลาหมดอายุถ้าเป็นไอเทมชั่วคราว
       if (item.duration) {
         newItem.expiresAt = now + item.duration;
@@ -316,8 +374,6 @@ class ShopSystem {
       });
 
       return { success: true, item, newBalance: profile.balance };
-
-      // ...rest of existing buyItem code...
     } catch (error) {
       console.error("Shop error:", error);
       return { success: false, reason: "system_error" };

@@ -12,217 +12,136 @@ module.exports = {
         .setDescription('สอนวิธีการเล่นและการใช้งานระบบต่างๆ'),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        const pages = {
+            main: new EmbedBuilder()
+                .setTitle('🎮 ยินดีต้อนรับสู่ 100Bath Economy!')
+                .setColor('#2b2d31')
+                .setDescription('```\nเลือกหัวข้อที่ต้องการเรียนรู้จากปุ่มด้านล่าง\n```')
+                .addFields(
+                    { name: '💰 เริ่มต้นใช้งาน', value: 'เรียนรู้พื้นฐานการเล่นและคำสั่งเบื้องต้น', inline: true },
+                    { name: '💼 ระบบอาชีพ', value: 'ทำงานและพัฒนาอาชีพของคุณ', inline: true },
+                    { name: '🎲 ระบบการพนัน', value: 'เสี่ยงโชคและเพิ่มความสนุก', inline: true },  
+                    { name: '🏦 ระบบธนาคาร', value: 'ฝากเงินและรับดอกเบี้ย', inline: true },
+                    { name: '🏆 ระบบความสำเร็จ', value: 'ปลดล็อคความสำเร็จต่างๆ', inline: true },
+                    { name: '💎 ระบบเพชรและร้านค้า', value: 'ซื้อไอเทมและอัพเกรด', inline: true }
+                )
+                .setFooter({ text: 'หน้า 1/6 • คลิกปุ่มด้านล่างเพื่อดูรายละเอียด' }),
 
-        try {
-            const canvas = createCanvas(800, 400);
-            const ctx = canvas.getContext('2d');
+            basic: new EmbedBuilder()
+                .setTitle('💰 เริ่มต้นใช้งาน')
+                .setColor('#00ff00')
+                .setDescription('```\nคำสั่งพื้นฐานที่ควรรู้\n```')
+                .addFields(
+                    { name: '📝 คำสั่งเริ่มต้น', value: '• `/start` - สร้างโปรไฟล์และเริ่มต้นใช้งาน\n• `/profile` - ดูข้อมูลโปรไฟล์\n• `/inventory` - ดูไอเทมที่มี', inline: false },
+                    { name: '💹 ระบบเลเวล', value: 'เลเวลจะเพิ่มขึ้นเมื่อทำกิจกรรมต่างๆ\nยิ่งเลเวลสูง ยิ่งปลดล็อคความสามารถมากขึ้น', inline: false },
+                    { name: '💡 เคล็ดลับ', value: 'ทำเควสรายวันเพื่อรับรางวัลและเพิ่ม Streak', inline: false }
+                ),
 
-            // Clean white background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            work: new EmbedBuilder()
+                .setTitle('💼 ระบบอาชีพ') 
+                .setColor('#3498db')
+                .setDescription('```\nทำงานเพื่อหาเงินและพัฒนาอาชีพ\n```')
+                .addFields(
+                    { name: '📋 วิธีการทำงาน', value: '1. `/work info` - ดูรายชื่ออาชีพทั้งหมด\n2. เลือกอาชีพที่เหมาะกับเลเวล\n3. `/work [อาชีพ]` - เริ่มทำงาน', inline: false },
+                    { name: '📈 การพัฒนา', value: '• ทำงานเพื่อเพิ่มเลเวลอาชีพ\n• อาชีพเลเวลสูงให้รายได้มากขึ้น\n• มีโอกาสได้ไอเทมพิเศษ', inline: false },
+                    { name: '💎 โบนัสพิเศษ', value: 'มีโอกาสได้รับเพชรจากการทำงาน', inline: false }
+                ),
 
-            // Minimal border design
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+            gambling: new EmbedBuilder()
+                .setTitle('🎲 ระบบการพนัน')
+                .setColor('#e74c3c')
+                .setDescription('```\nเสี่ยงโชคเพื่อเพิ่มความสนุก\n```')
+                .addFields(
+                    { name: '🎮 เกมที่เปิดให้บริการ', value: '• `/gamble blackjack` - เกมไพ่แบล็คแจ็ค\n• `/gamble crash` - เกมเพิ่มตัวคูณ', inline: false },
+                    { name: '⚠️ ข้อควรระวัง', value: '• เริ่มต้นด้วยเงินเดิมพันน้อยๆ\n• วงเงินเดิมพันขึ้นอยู่กับเลเวล\n• เล่นด้วยความรับผิดชอบ', inline: false }
+                ),
 
-            // Corner accents
-            const cornerSize = 20;
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.lineWidth = 2;
+            bank: new EmbedBuilder()
+                .setTitle('🏦 ระบบธนาคาร')
+                .setColor('#f1c40f')
+                .setDescription('```\nฝากเงินเพื่อความปลอดภัยและรับดอกเบี้ย\n```')
+                .addFields(
+                    { name: '💰 การใช้งานธนาคาร', value: '• `/bank deposit` - ฝากเงิน\n• `/bank withdraw` - ถอนเงิน\n• `/bank balance` - เช็คยอดเงิน', inline: false },
+                    { name: '📈 ดอกเบี้ย', value: 'รับดอกเบี้ย 1% ทุกชั่วโมงเมื่อมีเงินฝากขั้นต่ำ 1,000 บาท', inline: false },
+                    { name: '🛡️ ความปลอดภัย', value: 'เงินในธนาคารไม่สามารถถูกปล้นได้', inline: false }
+                ),
 
-            // Draw corners
-            [
-                [15, 35, 15, 15, 35, 15], // Top-left
-                [canvas.width - 35, 15, canvas.width - 15, 15, canvas.width - 15, 35], // Top-right
-                [15, canvas.height - 35, 15, canvas.height - 15, 35, canvas.height - 15], // Bottom-left
-                [canvas.width - 35, canvas.height - 15, canvas.width - 15, canvas.height - 15, canvas.width - 15, canvas.height - 35] // Bottom-right
-            ].forEach(([x1, y1, x2, y2, x3, y3]) => {
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.lineTo(x3, y3);
-                ctx.stroke();
-            });
+            shop: new EmbedBuilder()
+                .setTitle('💎 ระบบเพชรและร้านค้า')
+                .setColor('#9b59b6')
+                .setDescription('```\nซื้อไอเทมและอัพเกรดความสามารถ\n```')
+                .addFields(
+                    { name: '💎 การได้รับเพชร', value: '• ทำเควสรายวัน\n• รางวัล Streak\n• โอกาสได้จากการทำงาน', inline: false },
+                    { name: '🏪 ร้านค้า', value: '`/shop` เพื่อดูสินค้าทั้งหมด', inline: false },
+                    { name: '📦 ประเภทไอเทม', value: '• ไอเทมถาวร - ใช้ได้ตลอด\n• ไอเทมชั่วคราว - มีเวลาหมดอายุ\n• ยศพิเศษ - แสดงสถานะ', inline: false }
+                )
+        };
 
-            // Subtle diagonal pattern
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.02)';
-            ctx.lineWidth = 1;
-            for (let i = -canvas.height; i < canvas.width; i += 20) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i + canvas.height, canvas.height);
-                ctx.stroke();
+        // สร้างปุ่มนำทาง
+        const navigation = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('main')
+                    .setLabel('หน้าหลัก')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('basic')
+                    .setLabel('พื้นฐาน')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('work')
+                    .setLabel('อาชีพ')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('gambling')
+                    .setLabel('การพนัน')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('shop')
+                    .setLabel('ร้านค้า')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+        const bankNav = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('bank')
+                    .setLabel('ธนาคาร')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+        const response = await interaction.reply({
+            embeds: [pages.main],
+            components: [navigation, bankNav],
+            fetchReply: true
+        });
+
+        // สร้าง collector สำหรับปุ่มกด
+        const collector = response.createMessageComponentCollector({
+            time: 300000 // 5 minutes
+        });
+
+        collector.on('collect', async i => {
+            if (i.user.id !== interaction.user.id) {
+                return i.reply({
+                    content: '❌ กรุณาใช้คำสั่ง /tutorial ของคุณเอง',
+                    ephemeral: true
+                });
             }
 
-            // Top accent line with gradient
-            const accentGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-            accentGradient.addColorStop(0, '#4361ee');
-            accentGradient.addColorStop(1, '#3f37c9');
-            ctx.fillStyle = accentGradient;
-            ctx.fillRect(0, 0, canvas.width, 4);
-
-            // Modern title
-            ctx.font = 'bold 32px Sarabun';
-            ctx.fillStyle = '#2c2c2c';
-            ctx.textAlign = 'center';
-            ctx.fillText('🎮 คู่มือการเริ่มต้นเล่นเกม', canvas.width / 2, 50);
-
-            // Content sections with modern design
-            const sections = [
-                {
-                    icon: '🎯',
-                    title: 'เริ่มต้นใช้งาน',
-                    commands: ['/start', '/profile', '/help'],
-                    descriptions: ['สร้างตัวละคร', 'ดูข้อมูลตัวละคร', 'ดูคำสั่งทั้งหมด']
-                },
-                {
-                    icon: '💰',
-                    title: 'ระบบเศรษฐกิจ',
-                    commands: ['/work', '/bank', '/shop'],
-                    descriptions: ['ทำงานหาเงิน', 'จัดการเงินในธนาคาร', 'ร้านค้าไอเทม']
-                },
-                {
-                    icon: '⭐',
-                    title: 'กิจกรรมพิเศษ',
-                    commands: ['/quest', '/gacha', '/achievement'],
-                    descriptions: ['ภารกิจประจำวัน', 'สุ่มไอเทมพิเศษ', 'รางวัลความสำเร็จ']
-                }
-            ];
-
-            let yPos = 80;
-            sections.forEach((section, index) => {
-                // Section container with subtle shadow
-                ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetY = 2;
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(30, yPos, canvas.width - 60, 90);
-                ctx.restore();
-
-                // Section icon and title
-                ctx.font = '24px Sarabun';
-                ctx.fillStyle = '#4361ee';
-                ctx.textAlign = 'left';
-                ctx.fillText(section.icon, 45, yPos + 35);
-
-                ctx.font = 'bold 22px Sarabun';
-                ctx.fillStyle = '#2c2c2c';
-                ctx.fillText(section.title, 85, yPos + 35);
-
-                // Commands with descriptions
-                section.commands.forEach((cmd, i) => {
-                    ctx.font = '18px Sarabun';
-                    ctx.fillStyle = '#666666';
-                    ctx.fillText(`${cmd}`, 45, yPos + 65 + (i * 25));
-                    
-                    ctx.fillStyle = '#999999';
-                    ctx.fillText(`- ${section.descriptions[i]}`, 150, yPos + 65 + (i * 25));
-                });
-
-                yPos += 100;
+            // อัพเดท embed ตามปุ่มที่กด
+            await i.update({
+                embeds: [pages[i.customId]],
+                components: [navigation, bankNav]
             });
+        });
 
-            // Bottom accent with gradient
-            const bottomGradient = ctx.createLinearGradient(0, canvas.height - 40, 0, canvas.height);
-            bottomGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            bottomGradient.addColorStop(1, 'rgba(0, 0, 0, 0.02)');
-            ctx.fillStyle = bottomGradient;
-            ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
-
-            // Footer text
-            ctx.font = '18px Sarabun';
-            ctx.fillStyle = '#666666';
-            ctx.textAlign = 'center';
-            ctx.fillText('💡 พิมพ์ /help เพื่อดูคำสั่งทั้งหมด | พิมพ์ /support หากต้องการความช่วยเหลือ', canvas.width / 2, canvas.height - 20);
-
-            const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: 'tutorial.png' });
-
-            // Interactive buttons
-            const buttons = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('getting_started')
-                        .setLabel('🎯 เริ่มต้นใช้งาน')
-                        .setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder()
-                        .setCustomId('economy')
-                        .setLabel('💰 ระบบเศรษฐกิจ')
-                        .setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder()
-                        .setCustomId('activities')
-                        .setLabel('⭐ กิจกรรมพิเศษ')
-                        .setStyle(ButtonStyle.Primary)
-                );
-
-            const response = await interaction.editReply({
-                files: [attachment],
-                components: [buttons]
-            });
-
-            // Button interactions
-            const collector = response.createMessageComponentCollector({ time: 300000 });
-
-            collector.on('collect', async i => {
-                if (i.user.id !== interaction.user.id) {
-                    return i.reply({ content: '❌ กรุณาใช้คำสั่ง /tutorial ของคุณเอง', ephemeral: true });
-                }
-
-                const guides = {
-                    getting_started: {
-                        title: '🎯 วิธีการเริ่มต้นใช้งาน',
-                        description: [
-                            '**1. สร้างตัวละคร**',
-                            '• ใช้คำสั่ง `/start` เพื่อสร้างตัวละครของคุณ',
-                            '• เลือกอาชีพเริ่มต้นที่เหมาะกับคุณ',
-                            '• รับไอเทมและเงินเริ่มต้น\n',
-                            '**2. ดูข้อมูลตัวละคร**',
-                            '• ใช้ `/profile` เพื่อดูสถานะตัวละคร',
-                            '• ตรวจสอบเลเวล, เงิน และไอเทม',
-                            '• ดูความคืบหน้าของตัวละคร'
-                        ].join('\n')
-                    },
-                    economy: {
-                        title: '💰 ระบบเศรษฐกิจ',
-                        description: [
-                            '**การทำงานและหาเงิน**',
-                            '• ใช้ `/work` เพื่อทำงานและรับเงิน',
-                            '• ทำงานต่อเนื่องเพื่อรับโบนัส',
-                            '• อัพเกรดอาชีพเพื่อรับเงินมากขึ้น\n',
-                            '**การจัดการเงิน**',
-                            '• ฝากเงินในธนาคารเพื่อรับดอกเบี้ย',
-                            '• ซื้อไอเทมเพื่อเพิ่มความสามารถ',
-                            '• ลงทุนในตลาดซื้อขาย'
-                        ].join('\n')
-                    },
-                    activities: {
-                        title: '⭐ กิจกรรมพิเศษ',
-                        description: [
-                            '**ภารกิจประจำวัน**',
-                            '• รับเควสใหม่ทุกวัน',
-                            '• ทำภารกิจเพื่อรับรางวัล',
-                            '• สะสมแต้มแลกรางวัลพิเศษ\n',
-                            '**กิจกรรมสุ่มไอเทม**',
-                            '• สุ่มไอเทมหายากด้วย `/gacha`',
-                            '• สะสมไอเทมครบเซ็ตรับโบนัส',
-                            '• แลกเปลี่ยนไอเทมกับผู้เล่นอื่น'
-                        ].join('\n')
-                    }
-                };
-
-                const embed = new EmbedBuilder()
-                    .setColor('#4361ee')
-                    .setTitle(guides[i.customId].title)
-                    .setDescription(guides[i.customId].description);
-
-                await i.reply({ embeds: [embed], ephemeral: true });
-            });
-
-        } catch (error) {
-            console.error('Error in tutorial command:', error);
-            await interaction.editReply('❌ เกิดข้อผิดพลาดในการแสดงคู่มือ');
-        }
+        collector.on('end', () => {
+            navigation.components.forEach(button => button.setDisabled(true));
+            bankNav.components.forEach(button => button.setDisabled(true));
+            interaction.editReply({
+                components: [navigation, bankNav]
+            }).catch(() => {});
+        });
     }
 };

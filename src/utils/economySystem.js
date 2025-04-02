@@ -140,7 +140,7 @@ class EconomySystem {
         },
       },
       inventory: [],
-      lastDaily: 0,
+      questStreak: 0,
       createdAt: Date.now(),
     };
 
